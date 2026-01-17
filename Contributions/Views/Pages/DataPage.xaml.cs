@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -171,16 +171,23 @@ namespace Contributions.Views.Pages
                 TextSize = 12,
                 IsAntialias = true
             };
-            canvas.DrawText("Less", startX, legendY, legendLabelPaint);
+            var legendCenterY = legendY;
+            var legendMetrics = legendLabelPaint.FontMetrics;
+            var legendTextBaseline = legendCenterY - (legendMetrics.Ascent + legendMetrics.Descent) / 2;
+            canvas.DrawText("Less", startX, legendTextBaseline, legendLabelPaint);
 
             var legendX = startX + 50;
             for (int i = 0; i < paletteColors.Length; i++)
             {
                 var x = legendX + i * (cellSize + cellSpacing + 5);
                 cellPaint.Color = SKColor.Parse(paletteColors[i]);
-                DrawCell(canvas, x, legendY - 15, cellSize, cellPaint);
+                DrawCell(canvas, x, legendCenterY - cellSize / 2, cellSize, cellPaint);
             }
-            canvas.DrawText("More", legendX + paletteColors.Length * (cellSize + cellSpacing + 5) + 10, legendY, legendLabelPaint);
+            canvas.DrawText(
+                "More",
+                legendX + paletteColors.Length * (cellSize + cellSpacing + 5) + 10,
+                legendTextBaseline,
+                legendLabelPaint);
 
             static void DrawCell(SKCanvas canvas, float x, float y, float size, SKPaint paint)
             {
