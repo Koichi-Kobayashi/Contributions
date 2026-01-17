@@ -1,59 +1,59 @@
-# GitHub Contributions Chart Generator - Desktop Edition
+[English](README.md) | [日本語](README.ja.md)
 
-GitHubのContributionsチャートを取得して表示し、画像としてクリップボードにコピーできるデスクトップアプリケーションです。
+# GitHub Contribution Chart Generator – Desktop Edition
 
-## 機能
+GitHub Contribution Chart Generator – Desktop Edition is a simple desktop application that visualizes GitHub contribution activity.
 
-- GitHubのURLまたはユーザー名からContributionsデータを取得
-- 複数のテーマから選択可能
-- 生成されたチャートをクリップボードにコピー（Xなどでシェア可能）
+This application is inspired by the following web-based project:
 
-## セットアップ
+- https://github.com/sallar/github-contributions-chart
 
-### 必要な環境
+---
 
-- Node.js 16以上
-- npm または yarn
+## Overview
 
-### インストール
+This desktop application loads the **GitHub Profile page** of a specified account, analyzes the **Contributions** section, and displays the contribution chart directly on the screen.
 
-```bash
-npm install
-```
+It allows you to quickly visualize your GitHub activity without using a web browser.
 
-## 開発
+---
 
-開発モードで起動：
+## How It Works
 
-```bash
-npm run electron:dev
-```
+1. Loads the GitHub profile page of the specified GitHub account  
+2. Parses the Contributions data from the profile page  
+3. Analyzes the contribution history  
+4. Displays the contribution chart in the desktop application  
 
-## ビルド
+---
 
-デスクトップアプリとしてビルド：
+## How to Run
 
-```bash
-npm run electron:build
-```
+1. Clone (pull) this repository  
+2. Open the solution with **Visual Studio 2026 or later**  
+3. Press **F5** to build and run  
 
-ビルドされたアプリは `release` ディレクトリに出力されます。
+No additional configuration is required.
 
-## 使い方
+---
 
-1. アプリを起動
-2. GitHubのURL（例: `https://github.com/username`）またはユーザー名を入力
-3. 「生成！」ボタンをクリック
-4. チャートが表示されたら「クリップボードにコピー」ボタンをクリック
-5. Xなどで画像をシェア
+## Requirements
 
-## 技術スタック
+- Windows
+- Visual Studio 2026 or later
+- Internet connection (to load the GitHub profile page)
 
-- Electron
-- React
-- Vite
-- github-contributions-canvas
+---
 
-## ライセンス
+## Inspiration
 
-MIT
+This project is inspired by the following web application:
+
+- **GitHub Contributions Chart Generator**  
+  https://github.com/sallar/github-contributions-chart
+
+---
+
+## License
+
+This project is released under the MIT License.
