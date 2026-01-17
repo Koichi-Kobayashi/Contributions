@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,5 +34,35 @@
     <Resource Include="Assets\wpfui-icon-256.png" />
     <Resource Include="Assets\wpfui-icon-1024.png" />
   </ItemGroup>
+
+    <!-- Ensure project.assets.json and NuGet generated files exist in wappublish directory for MSIX packaging -->
+    <Target Name="EnsureWappublishAssetsFile" AfterTargets="Restore" BeforeTargets="PrepareResourceFiles">
+      <PropertyGroup>
+        <SourceAssetsFile>$(MSBuildProjectDirectory)\obj\project.assets.json</SourceAssetsFile>
+        <SourceNugetTargets>$(MSBuildProjectDirectory)\obj\$(MSBuildProjectFile).nuget.g.targets</SourceNugetTargets>
+        <SourceNugetProps>$(MSBuildProjectDirectory)\obj\$(MSBuildProjectFile).nuget.g.props</SourceNugetProps>
+       <SourceNugetDgspec>$(MSBuildProjectDirectory)\obj\$(MSBuildProjectFile).nuget.dgspec.json</SourceNugetDgspec>
+      </PropertyGroup>
+
+      <!-- Copy for current RuntimeIdentifier if set -->
+      <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+        <WappublishAssetsDir>$(MSBuildProjectDirectory)\obj\wappublish\$(RuntimeIdentifier)</WappublishAssetsDir>
+      </PropertyGroup>
+      <MakeDir Directories="$(WappublishAssetsDir)" Condition="'$(RuntimeIdentifier)' != '' AND !Exists('$(WappublishAssetsDir)')" />
+      <Copy SourceFiles="$(SourceAssetsFile)" DestinationFiles="$(WappublishAssetsDir)\project.assets.json" Condition="'$(RuntimeIdentifier)' != '' AND Exists('$(SourceAssetsFile)')" SkipUnchangedFiles="true" />
+      <Copy SourceFiles="$(SourceNugetTargets)" DestinationFiles="$(WappublishAssetsDir)\$(MSBuildProjectFile).nuget.g.targets" Condition="'$(RuntimeIdentifier)' != '' AND Exists('$(SourceNugetTargets)')" SkipUnchangedFiles="true" />
+      <Copy SourceFiles="$(SourceNugetProps)" DestinationFiles="$(WappublishAssetsDir)\$(MSBuildProjectFile).nuget.g.props" Condition="'$(RuntimeIdentifier)' != '' AND Exists('$(SourceNugetProps)')" SkipUnchangedFiles="true" />
+      <Copy SourceFiles="$(SourceNugetDgspec)" DestinationFiles="$(WappublishAssetsDir)\$(MSBuildProjectFile).nuget.dgspec.json" Condition="'$(RuntimeIdentifier)' != '' AND Exists('$(SourceNugetDgspec)')" SkipUnchangedFiles="true" />
+
+      <!-- Copy for all RuntimeIdentifiers defined in the project -->
+      <ItemGroup>
+        <RIDList Include="win-x64;win-x86;win-arm64" />
+      </ItemGroup>
+      <MakeDir Directories="$(MSBuildProjectDirectory)\obj\wappublish\%(RIDList.Identity)" Condition="!Exists('$(MSBuildProjectDirectory)\obj\wappublish\%(RIDList.Identity)')" />
+      <Copy SourceFiles="$(SourceAssetsFile)" DestinationFiles="$(MSBuildProjectDirectory)\obj\wappublish\%(RIDList.Identity)\project.assets.json" Condition="Exists('$(SourceAssetsFile)')" SkipUnchangedFiles="true" />
+      <Copy SourceFiles="$(SourceNugetTargets)" DestinationFiles="$(MSBuildProjectDirectory)\obj\wappublish\%(RIDList.Identity)\$(MSBuildProjectFile).nuget.g.targets" Condition="Exists('$(SourceNugetTargets)')" SkipUnchangedFiles="true" />
+      <Copy SourceFiles="$(SourceNugetProps)" DestinationFiles="$(MSBuildProjectDirectory)\obj\wappublish\%(RIDList.Identity)\$(MSBuildProjectFile).nuget.g.props" Condition="Exists('$(SourceNugetProps)')" SkipUnchangedFiles="true" />
+      <Copy SourceFiles="$(SourceNugetDgspec)" DestinationFiles="$(MSBuildProjectDirectory)\obj\wappublish\%(RIDList.Identity)\$(MSBuildProjectFile).nuget.dgspec.json" Condition="Exists('$(SourceNugetDgspec)')" SkipUnchangedFiles="true" />
+    </Target>
 
 </Project>
