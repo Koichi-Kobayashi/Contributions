@@ -36,6 +36,14 @@ namespace Contributions.ViewModels.Pages
         [ObservableProperty]
         private string _paletteName = "standard";
 
+        private bool _canShareToX;
+
+        public bool CanShareToX
+        {
+            get => _canShareToX;
+            set => SetProperty(ref _canShareToX, value);
+        }
+
         public List<string> ThemeModes { get; } = ["Light", "Dark"];
 
         public List<string> PaletteNames { get; } = Palettes.Select(p => p.Name).ToList();
@@ -94,6 +102,7 @@ namespace Contributions.ViewModels.Pages
         partial void OnContributionDataChanged(ContributionData? value)
         {
             OnPropertyChanged(nameof(HasResult));
+            CanShareToX = false;
         }
 
         partial void OnThemeModeChanged(string value)

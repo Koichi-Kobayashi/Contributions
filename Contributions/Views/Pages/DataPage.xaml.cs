@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using Contributions.Helpers;
+using Contributions.Services;
 using Contributions.Models;
 using Contributions.ViewModels.Pages;
 using SkiaSharp;
@@ -234,11 +236,23 @@ namespace Contributions.Views.Pages
                 bitmapImage.Freeze();
 
                 Clipboard.SetImage(bitmapImage);
+                ViewModel.CanShareToX = true;
             }
             catch
             {
                 // ignore
             }
+        }
+
+        private void ShareXButton_Click(object sender, RoutedEventArgs e)
+        {
+            var username = GitHubService.CleanUsername(ViewModel.Url);
+            var profileUrl = string.IsNullOrWhiteSpace(username) ? null : $"https://github.com/{username}";
+
+            XShare.OpenTweetComposer(
+                text: "My GitHub contributions this year 🚀\n(press Ctrl+V to paste the image)",
+                url: profileUrl,
+                hashtags: "GitHub");
         }
 
         private static int ClampIntensity(int intensity)
