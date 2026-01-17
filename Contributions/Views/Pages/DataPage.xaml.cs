@@ -70,15 +70,21 @@ namespace Contributions.Views.Pages
                 .ToDictionary(g => g.Key, g => g.Last());
 
             var dates = contributions.Select(c => DateTime.Parse(c.Date)).OrderBy(d => d).ToList();
-            var firstDate = dates.First();
             var lastDate = dates.Last();
+            var localToday = DateTime.Today;
+            var dayDelta = (localToday - lastDate.Date).Days;
+            if (dayDelta == 1)
+            {
+                lastDate = localToday;
+            }
 
-            var startDate = firstDate;
-            while (startDate.DayOfWeek != DayOfWeek.Sunday)
-                startDate = startDate.AddDays(-1);
+            var endWeekStart = lastDate;
+            while (endWeekStart.DayOfWeek != DayOfWeek.Sunday)
+                endWeekStart = endWeekStart.AddDays(-1);
 
-            var totalDays = (lastDate - startDate).Days;
-            var weeks = Math.Min(53, (totalDays / 7) + 1);
+            const int weeks = 53;
+            var startDate = endWeekStart.AddDays(-7 * (weeks - 1));
+            var rangeEndDate = lastDate;
             var chartHeight = 7 * dayHeight;
 
             var startX = padding + 30;
@@ -150,7 +156,7 @@ namespace Contributions.Views.Pages
                         cellPaint.Color = SKColor.Parse(paletteColors[ClampIntensity(contribution.Intensity)]);
                         DrawCell(canvas, x, y, cellSize, cellPaint);
                     }
-                    else if (date >= firstDate && date <= lastDate)
+                    else if (date >= startDate && date <= rangeEndDate)
                     {
                         var x = startX + week * weekWidth;
                         var y = startY + day * dayHeight;
@@ -160,7 +166,6 @@ namespace Contributions.Views.Pages
                 }
 
                 currentDate = weekStart.AddDays(7);
-                if (currentDate > lastDate.AddDays(7)) break;
             }
 
             // 凡例

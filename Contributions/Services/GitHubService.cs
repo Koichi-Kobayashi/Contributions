@@ -86,22 +86,26 @@ namespace Contributions.Services
             var doc = new HtmlDocument();
             doc.LoadHtml(response);
 
-            var days = doc.DocumentNode.SelectNodes("//td[contains(@class, 'ContributionCalendar-day')]");
+            var calendarTable = doc.DocumentNode.SelectSingleNode(
+                "//table[contains(@class, 'ContributionCalendar-grid') and contains(@class, 'js-calendar-graph-table')]");
+            var days = calendarTable?.SelectNodes(".//td[contains(@class, 'ContributionCalendar-day')]");
             var contributions = new List<Contribution>();
 
             if (days != null)
             {
                 foreach (var day in days)
                 {
-                    var date = day.GetAttributeValue("data-date", "");
-                    var levelStr = day.GetAttributeValue("data-level", "0");
-                    int level = int.TryParse(levelStr, out var l) ? l : 0;
+                    var date = GetAttributeFromSelfOrDescendant(day, "data-date");
+                    var levelStr = GetAttributeFromSelfOrDescendant(day, "data-level");
+                    if (string.IsNullOrWhiteSpace(date))
+                        continue;
+                    var intensity = int.TryParse(levelStr, out var l) ? l : 0;
 
                     contributions.Add(new Contribution
                     {
                         Date = date,
                         Count = 0,
-                        Intensity = level
+                        Intensity = intensity
                     });
                 }
             }
@@ -120,5 +124,16 @@ namespace Contributions.Services
 
             return (year, contributions.Count, range, contributions);
         }
+
+        private static string GetAttributeFromSelfOrDescendant(HtmlNode node, string attributeName)
+        {
+            var direct = node.GetAttributeValue(attributeName, "");
+            if (!string.IsNullOrWhiteSpace(direct))
+                return direct;
+
+            var child = node.SelectSingleNode($".//*[@{attributeName}]");
+            return child?.GetAttributeValue(attributeName, "") ?? string.Empty;
+        }
+
     }
 }
