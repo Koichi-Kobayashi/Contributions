@@ -1,0 +1,129 @@
+<Page
+    x:Class="Contributions.Views.Pages.DataPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:helpers="clr-namespace:Contributions.Helpers"
+    xmlns:local="clr-namespace:Contributions.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:skia="clr-namespace:SkiaSharp.Views.WPF;assembly=SkiaSharp.Views.WPF"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="DataPage"
+    d:DataContext="{d:DesignInstance local:DataPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="450"
+    d:DesignWidth="1320"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ScrollViewer.CanContentScroll="False"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+    </Page.Resources>
+
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="385" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  左側パネル  -->
+        <Border
+            Grid.Column="0"
+            Padding="0"
+            Background="{DynamicResource ApplicationBackgroundBrush}"
+            CornerRadius="6">
+            <StackPanel>
+                <TextBlock
+                    FontSize="22"
+                    FontWeight="SemiBold"
+                    Text="GitHub Contributions Chart Generator" />
+                <TextBlock
+                    Margin="0,6,0,20"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="All your contributions in one image!" />
+
+                <TextBlock Text="GitHub URL / Username" />
+                <TextBox
+                    Height="36"
+                    Margin="0,6,0,12"
+                    Text="{Binding ViewModel.Url, UpdateSourceTrigger=PropertyChanged}" />
+
+                <ui:Button
+                    Margin="0,0,0,12"
+                    Appearance="Primary"
+                    Command="{Binding ViewModel.GenerateCommand}"
+                    Content="Generate"
+                    IsEnabled="{Binding ViewModel.CanGenerate}" />
+
+                <Grid Height="24" Margin="0,0,0,12">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:ProgressRing
+                            Width="20"
+                            Height="20"
+                            IsIndeterminate="{Binding ViewModel.IsLoading}"
+                            Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <TextBlock
+                            Margin="8,0,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="Loading..."
+                            Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock
+                    Foreground="#d32f2f"
+                    Text="{Binding ViewModel.ErrorMessage}"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding ViewModel.ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}" />
+
+                <Separator Margin="0,12,0,12" />
+
+                <TextBlock Text="Theme Mode" />
+                <ComboBox
+                    Height="40"
+                    Margin="0,6,0,12"
+                    ItemsSource="{Binding ViewModel.ThemeModes}"
+                    SelectedItem="{Binding ViewModel.ThemeMode}" />
+
+                <TextBlock Text="Palette" />
+                <ComboBox
+                    Height="40"
+                    Margin="0,6,0,12"
+                    ItemsSource="{Binding ViewModel.PaletteNames}"
+                    SelectedItem="{Binding ViewModel.PaletteName}" />
+            </StackPanel>
+        </Border>
+
+        <!--  右側パネル  -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="16"
+                    FontWeight="Medium"
+                    Text="Your chart is ready!"
+                    Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                <ui:Button
+                    x:Name="CopyButton"
+                    Margin="0,12,0,16"
+                    HorizontalAlignment="Center"
+                    Appearance="Primary"
+                    Click="CopyButton_Click"
+                    Content="Copy to Clipboard"
+                    Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                <skia:SKElement
+                    x:Name="ChartCanvas"
+                    Width="900"
+                    Height="320"
+                    PaintSurface="ChartCanvas_PaintSurface"
+                    Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
