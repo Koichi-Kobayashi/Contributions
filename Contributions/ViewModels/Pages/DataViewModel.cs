@@ -1,4 +1,4 @@
-﻿using Contributions.Models;
+using Contributions.Models;
 using Contributions.Services;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
@@ -31,7 +31,7 @@ namespace Contributions.ViewModels.Pages
         private string _themeMode = "Dark";
 
         [ObservableProperty]
-        private string _paletteName = "GitHub";
+        private string _paletteName = "standard";
 
         public List<string> ThemeModes { get; } = ["Light", "Dark"];
 
@@ -129,32 +129,68 @@ namespace Contributions.ViewModels.Pages
         public string[] GetPaletteColors()
         {
             var palette = Palettes.FirstOrDefault(p => p.Name == PaletteName) ?? Palettes[0];
-            return ThemeMode == "Dark" ? palette.Dark : palette.Light;
+            return palette.Grades;
         }
 
-        private record Palette(string Name, string[] Light, string[] Dark);
+        private record PaletteDefinition(string Name, string[] Grades);
 
-        private static readonly List<Palette> Palettes =
+        private static readonly List<PaletteDefinition> Palettes =
         [
-            new Palette(
-                "GitHub",
-                ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
-                ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"]
+            new PaletteDefinition(
+                "standard",
+                ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"]
             ),
-            new Palette(
-                "Halloween",
-                ["#ebedf0", "#ffe29a", "#ffc400", "#ff8c00", "#ff5a00"],
-                ["#161b22", "#4a2b0f", "#7a3f00", "#b45309", "#f97316"]
+            new PaletteDefinition(
+                "classic",
+                ["#ebedf0", "#c6e48b", "#7bc96f", "#239a3b", "#196127"]
             ),
-            new Palette(
-                "Ocean",
-                ["#ebedf0", "#b3d8ff", "#64b5f6", "#1e88e5", "#0d47a1"],
-                ["#161b22", "#0f2747", "#0b4f6c", "#1368aa", "#1c77c3"]
+            new PaletteDefinition(
+                "githubDark",
+                ["#161b22", "#003820", "#00602d", "#10983d", "#27d545"]
             ),
-            new Palette(
-                "Dracula",
-                ["#ebedf0", "#f1a2e6", "#bd93f9", "#8be9fd", "#50fa7b"],
-                ["#161b22", "#4a2b4f", "#6a4c93", "#3aa7bd", "#2ea043"]
+            new PaletteDefinition(
+                "halloween",
+                ["#ebedf0", "#FFEE4A", "#FFC501", "#FE9600", "#03001C"]
+            ),
+            new PaletteDefinition(
+                "teal",
+                ["#ebedf0", "#7FFFD4", "#76EEC6", "#66CDAA", "#458B74"]
+            ),
+            new PaletteDefinition(
+                "leftPad",
+                ["#2F2F2F", "#646464", "#A5A5A5", "#DDDDDD", "#F6F6F6"]
+            ),
+            new PaletteDefinition(
+                "dracula",
+                ["#282a36", "#44475a", "#6272a4", "#bd93f9", "#ff79c6"]
+            ),
+            new PaletteDefinition(
+                "blue",
+                ["#222222", "#263342", "#344E6C", "#416895", "#4F83BF"]
+            ),
+            new PaletteDefinition(
+                "panda",
+                ["#242526", "#34353B", "#6FC1FF", "#19f9d8", "#FF4B82"]
+            ),
+            new PaletteDefinition(
+                "sunny",
+                ["#fff9ae", "#f8ed62", "#e9d700", "#dab600", "#a98600"]
+            ),
+            new PaletteDefinition(
+                "pink",
+                ["#ebedf0", "#e48bdc", "#ca5bcc", "#a74aa8", "#61185f"]
+            ),
+            new PaletteDefinition(
+                "YlGnBu",
+                ["#ebedf0", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"]
+            ),
+            new PaletteDefinition(
+                "solarizedDark",
+                ["#073642", "#268bd2", "#2aa198", "#b58900", "#d33682"]
+            ),
+            new PaletteDefinition(
+                "solarizedLight",
+                ["#eee8d5", "#b58900", "#cb4b16", "#dc322f", "#6c71c4"]
             )
         ];
     }
