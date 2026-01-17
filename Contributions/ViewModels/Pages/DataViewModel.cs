@@ -8,11 +8,14 @@ namespace Contributions.ViewModels.Pages
     public partial class DataViewModel : ObservableObject, INavigationAware
     {
         private readonly GitHubService _gitHubService;
+        private readonly SettingsService _settingsService;
         private bool _isInitialized = false;
+        private bool _isLoadingSettings = false;
 
-        public DataViewModel(GitHubService gitHubService)
+        public DataViewModel(GitHubService gitHubService, SettingsService settingsService)
         {
             _gitHubService = gitHubService;
+            _settingsService = settingsService;
         }
 
         [ObservableProperty]
@@ -41,22 +44,40 @@ namespace Contributions.ViewModels.Pages
 
         public bool HasResult => ContributionData != null && ContributionData.Contributions.Count > 0;
 
-        public Task OnNavigatedToAsync()
+        public async Task OnNavigatedToAsync()
         {
             if (!_isInitialized)
             {
-                InitializeViewModel();
+                await InitializeViewModelAsync();
             }
-
-            return Task.CompletedTask;
         }
 
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
-        private void InitializeViewModel()
+        private async Task InitializeViewModelAsync()
         {
             var currentTheme = ApplicationThemeManager.GetAppTheme();
             ThemeMode = currentTheme == ApplicationTheme.Light ? "Light" : "Dark";
+            _isLoadingSettings = true;
+
+            try
+            {
+                var settings = await _settingsService.LoadAsync();
+                if (!string.IsNullOrWhiteSpace(settings.ThemeMode))
+                    ThemeMode = settings.ThemeMode;
+                if (!string.IsNullOrWhiteSpace(settings.PaletteName))
+                    PaletteName = settings.PaletteName;
+                if (!string.IsNullOrWhiteSpace(settings.Url))
+                    Url = settings.Url;
+            }
+            finally
+            {
+                _isLoadingSettings = false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Url))
+                await GenerateAsync();
+
             _isInitialized = true;
         }
 
@@ -117,6 +138,16 @@ namespace Contributions.ViewModels.Pages
             {
                 IsLoading = false;
             }
+        }
+
+        public UserSettings CreateSettingsSnapshot()
+        {
+            return new UserSettings
+            {
+                Url = Url,
+                ThemeMode = ThemeMode,
+                PaletteName = PaletteName
+            };
         }
 
         public (string Background, string Text, string SubText) GetThemeColors()

@@ -1,4 +1,4 @@
-﻿using Contributions.Services;
+using Contributions.Services;
 using Contributions.ViewModels.Pages;
 using Contributions.ViewModels.Windows;
 using Contributions.Views.Pages;
@@ -51,6 +51,7 @@ namespace Contributions
                 services.AddSingleton<DataViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<SettingsService>();
             }).Build();
 
         /// <summary>
@@ -74,6 +75,13 @@ namespace Contributions
         /// </summary>
         private async void OnExit(object sender, ExitEventArgs e)
         {
+            var settingsService = Services.GetService<SettingsService>();
+            var dataViewModel = Services.GetService<DataViewModel>();
+            if (settingsService != null && dataViewModel != null)
+            {
+                await settingsService.SaveAsync(dataViewModel.CreateSettingsSnapshot());
+            }
+
             await _host.StopAsync();
 
             _host.Dispose();
