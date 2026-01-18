@@ -46,7 +46,9 @@ namespace Contributions.ViewModels.Pages
 
         public List<string> ThemeModes { get; } = ["Light", "Dark"];
 
-        public List<string> PaletteNames { get; } = Palettes.Select(p => p.Name).ToList();
+        public List<PaletteItem> PaletteItems { get; } = Palettes
+            .Select(p => new PaletteItem(p.Name, p.Grades, p.Grades))
+            .ToList();
 
         public bool CanGenerate => !string.IsNullOrWhiteSpace(Url) && !IsLoading;
 
@@ -171,6 +173,8 @@ namespace Contributions.ViewModels.Pages
             var palette = Palettes.FirstOrDefault(p => p.Name == PaletteName) ?? Palettes[0];
             return palette.Grades;
         }
+
+        public record PaletteItem(string Name, string[] Grades, string[] DisplayGrades);
 
         private record PaletteDefinition(string Name, string[] Grades);
 
