@@ -13,7 +13,8 @@ namespace Contributions.Views.Windows
         public MainWindow(
             MainWindowViewModel viewModel,
             INavigationViewPageProvider navigationViewPageProvider,
-            INavigationService navigationService
+            INavigationService navigationService,
+            ISnackbarService snackbarService
         )
         {
             ViewModel = viewModel;
@@ -25,6 +26,7 @@ namespace Contributions.Views.Windows
             SetPageService(navigationViewPageProvider);
 
             navigationService.SetNavigationControl(RootNavigation);
+            snackbarService.SetSnackbarPresenter(SnackbarPresenter);
         }
 
         #region INavigationWindow methods

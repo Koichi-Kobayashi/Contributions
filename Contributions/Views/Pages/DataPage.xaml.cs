@@ -8,7 +8,9 @@ using Contributions.Models;
 using Contributions.ViewModels.Pages;
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
+using Wpf.Ui;
 using Wpf.Ui.Abstractions.Controls;
+using Wpf.Ui.Controls;
 
 namespace Contributions.Views.Pages
 {
@@ -16,9 +18,12 @@ namespace Contributions.Views.Pages
     {
         public DataViewModel ViewModel { get; }
 
-        public DataPage(DataViewModel viewModel)
+        private readonly ISnackbarService _snackbarService;
+
+        public DataPage(DataViewModel viewModel, ISnackbarService snackbarService)
         {
             ViewModel = viewModel;
+            _snackbarService = snackbarService;
             DataContext = this;
 
             InitializeComponent();
@@ -235,8 +240,15 @@ namespace Contributions.Views.Pages
                 bitmapImage.EndInit();
                 bitmapImage.Freeze();
 
-                Clipboard.SetImage(bitmapImage);
+                Clipboard.SetImage(bitmapImage);    // ここで例外が出るが無視してOK
                 ViewModel.CanShareToX = true;
+
+                _snackbarService.Show(
+                    "Copied to clipboard.",
+                    "You can post it to X using the Post to X button.",
+                    ControlAppearance.Success,
+                    new SymbolIcon(SymbolRegular.Checkmark24),
+                    TimeSpan.FromSeconds(2));
             }
             catch
             {
