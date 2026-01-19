@@ -94,14 +94,13 @@ namespace Contributions.Views.Pages
             using var titlePaint = new SKPaint
             {
                 Color = SKColor.Parse(theme.Text),
-                TextSize = 24,
-                IsAntialias = true,
-                Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold)
+                IsAntialias = true
             };
+            using var titleFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 24);
             var titleText = "GitHub Contributions";
             var titleBounds = new SKRect();
-            titlePaint.MeasureText(titleText, ref titleBounds);
-            canvas.DrawText(titleText, (info.Width - titleBounds.Width) / 2, padding + 30, titlePaint);
+            titleFont.MeasureText(titleText, out titleBounds);
+            canvas.DrawText(titleText, (info.Width - titleBounds.Width) / 2, padding + 30, SKTextAlign.Left, titleFont, titlePaint);
 
             var contributions = ViewModel.ContributionData.Contributions;
             var contributionDict = contributions
@@ -133,9 +132,9 @@ namespace Contributions.Views.Pages
             using var dayLabelPaint = new SKPaint
             {
                 Color = SKColor.Parse(theme.SubText),
-                TextSize = 10,
                 IsAntialias = true
             };
+            using var dayLabelFont = new SKFont(SKTypeface.Default, 10);
             DrawDayLabel(canvas, "Mon", 1);
             DrawDayLabel(canvas, "Wed", 3);
             DrawDayLabel(canvas, "Fri", 5);
@@ -143,13 +142,12 @@ namespace Contributions.Views.Pages
             void DrawDayLabel(SKCanvas c, string text, int dayIndex)
             {
                 var y = startY + dayIndex * dayHeight + cellSize / 2;
-                c.DrawText(text, startX - 30, y, dayLabelPaint);
+                c.DrawText(text, startX - 30, y, SKTextAlign.Left, dayLabelFont, dayLabelPaint);
             }
 
             using var cellPaint = new SKPaint
             {
                 IsAntialias = false,
-                FilterQuality = SKFilterQuality.None,
                 Style = SKPaintStyle.Fill
             };
 
@@ -175,11 +173,11 @@ namespace Contributions.Views.Pages
                     using var monthPaint = new SKPaint
                     {
                         Color = SKColor.Parse(theme.SubText),
-                        TextSize = 12,
                         IsAntialias = true
                     };
+                    using var monthFont = new SKFont(SKTypeface.Default, 12);
                     var month = GetMonthLabel(monthLabelDate.Value.Month);
-                    canvas.DrawText(month, startX + week * weekWidth, startY - 12, monthPaint);
+                    canvas.DrawText(month, startX + week * weekWidth, startY - 12, SKTextAlign.Left, monthFont, monthPaint);
                 }
 
                 for (int day = 0; day < 7; day++)
@@ -212,13 +210,13 @@ namespace Contributions.Views.Pages
             using var legendLabelPaint = new SKPaint
             {
                 Color = SKColor.Parse(theme.SubText),
-                TextSize = 12,
                 IsAntialias = true
             };
+            using var legendFont = new SKFont(SKTypeface.Default, 12);
             var legendCenterY = legendY;
-            var legendMetrics = legendLabelPaint.FontMetrics;
+            var legendMetrics = legendFont.Metrics;
             var legendTextBaseline = legendCenterY - (legendMetrics.Ascent + legendMetrics.Descent) / 2;
-            canvas.DrawText("Less", startX, legendTextBaseline, legendLabelPaint);
+            canvas.DrawText("Less", startX, legendTextBaseline, SKTextAlign.Left, legendFont, legendLabelPaint);
 
             var legendX = startX + 50;
             for (int i = 0; i < paletteColors.Length; i++)
@@ -231,6 +229,8 @@ namespace Contributions.Views.Pages
                 "More",
                 legendX + paletteColors.Length * (cellSize + cellSpacing + 5) + 10,
                 legendTextBaseline,
+                SKTextAlign.Left,
+                legendFont,
                 legendLabelPaint);
 
             static void DrawCell(SKCanvas canvas, float x, float y, float size, SKPaint paint)
