@@ -4,6 +4,8 @@
 
 GitHub Contribution Chart Generator – Desktop Edition is a simple desktop application that visualizes GitHub contribution activity.
 
+<img width="1500" height="650" alt="image" src="https://github.com/user-attachments/assets/20f91a4c-283a-4ba4-8a5d-d0927c5ad6b3" />
+
 This application is inspired by the following web-based project:
 
 - https://github.com/sallar/github-contributions-chart
