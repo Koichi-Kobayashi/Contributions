@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <!-- ここだけ変えれば全部変わる -->
+    <AppVersion>1.0.1</AppVersion>
+
+    <!-- NuGet/製品バージョン用（3桁） -->
+    <Version>$(AppVersion)</Version>
+
+    <!-- Assembly/FileVersion 用（4桁必須なので .0 を足す） -->
+    <AssemblyVersion>$(AppVersion).0</AssemblyVersion>
+    <FileVersion>$(AppVersion).0</FileVersion>
+
+    <!-- WPF の自動生成 AssemblyInfo を使う -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+</Project>
