@@ -4,6 +4,8 @@
 
 GitHub Contribution Chart Generator – Desktop Edition は、GitHub のコントリビューション履歴を可視化するシンプルなデスクトップアプリケーションです。
 
+<img width="1500" height="650" alt="image" src="https://github.com/user-attachments/assets/20f91a4c-283a-4ba4-8a5d-d0927c5ad6b3" />
+
 本アプリは、以下の Web アプリにインスパイアされて作成されています。
 
 - https://github.com/sallar/github-contributions-chart
