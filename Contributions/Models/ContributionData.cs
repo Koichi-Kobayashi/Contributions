@@ -4,6 +4,7 @@ namespace Contributions.Models
     {
         public List<YearData> Years { get; set; } = new();
         public List<Contribution> Contributions { get; set; } = new();
+        public List<Contribution> DefaultContributions { get; set; } = new();
     }
 
     public class YearData
@@ -11,6 +12,7 @@ namespace Contributions.Models
         public string Year { get; set; } = string.Empty;
         public int Total { get; set; }
         public DateRange? Range { get; set; }
+        public List<Contribution> Contributions { get; set; } = new();
     }
 
     public class DateRange

@@ -19,6 +19,10 @@ namespace Contributions.Views.Pages
         public DataViewModel ViewModel { get; }
 
         private readonly ISnackbarService _snackbarService;
+        private const float SingleChartHeight = 320f;
+        private const float ChartSpacing = 40f;
+
+        private record ChartData(string Title, List<Contribution> Contributions, bool UseFullRange);
 
         public DataPage(DataViewModel viewModel, ISnackbarService snackbarService)
         {
@@ -42,7 +46,12 @@ namespace Contributions.Views.Pages
             }
 
             if (e.PropertyName == nameof(DataViewModel.ContributionData)
-                || e.PropertyName == nameof(DataViewModel.ThemeMode)
+                || e.PropertyName == nameof(DataViewModel.SelectedYear))
+            {
+                UpdateChartCanvasSize();
+                ChartCanvas.InvalidateVisual();
+            }
+            else if (e.PropertyName == nameof(DataViewModel.ThemeMode)
                 || e.PropertyName == nameof(DataViewModel.PaletteName))
             {
                 ChartCanvas.InvalidateVisual();
@@ -84,6 +93,73 @@ namespace Contributions.Views.Pages
             canvas.Clear(SKColor.Parse(theme.Background));
 
             var info = e.Info;
+            var charts = GetChartItems();
+            if (charts.Count == 0)
+                return;
+
+            var offsetY = 0f;
+            foreach (var chart in charts)
+            {
+                DrawChart(canvas, info, chart, theme, paletteColors, offsetY);
+                offsetY += SingleChartHeight + ChartSpacing;
+            }
+        }
+
+        private void UpdateChartCanvasSize()
+        {
+            if (ViewModel.ContributionData == null || ViewModel.ContributionData.Contributions.Count == 0)
+                return;
+
+            var charts = GetChartItems();
+            var chartCount = Math.Max(1, charts.Count);
+            ChartCanvas.Height = SingleChartHeight * chartCount + ChartSpacing * Math.Max(0, chartCount - 1);
+            var maxWidth = charts.Count == 0
+                ? 900f
+                : charts.Max(ComputeChartWidth);
+            ChartCanvas.Width = Math.Max(900f, maxWidth);
+        }
+
+        private List<ChartData> GetChartItems()
+        {
+            var data = ViewModel.ContributionData;
+            if (data == null)
+                return [];
+
+            var selected = ViewModel.SelectedYear?.Trim();
+            if (string.IsNullOrWhiteSpace(selected) || selected == DataViewModel.DefaultYearOption)
+            {
+                if (data.DefaultContributions.Count > 0)
+                    return [new ChartData("GitHub Contributions", data.DefaultContributions, false)];
+
+                return [new ChartData("GitHub Contributions", data.Contributions, false)];
+            }
+
+            if (selected == DataViewModel.AllYearsOption)
+            {
+                return ViewModel.GetOrderedYears()
+                    .Select(y => new ChartData($"GitHub Contributions {y.Year}", y.Contributions, false))
+                    .Where(c => c.Contributions.Count > 0)
+                    .ToList();
+            }
+
+            var target = data.Years.FirstOrDefault(y => y.Year == selected);
+            if (target != null)
+                return [new ChartData($"GitHub Contributions {target.Year}", target.Contributions, false)];
+
+            return [new ChartData("GitHub Contributions", data.Contributions, false)];
+        }
+
+        private void DrawChart(
+            SKCanvas canvas,
+            SKImageInfo info,
+            ChartData chart,
+            (string Background, string Text, string SubText) theme,
+            string[] paletteColors,
+            float offsetY)
+        {
+            if (chart.Contributions.Count == 0)
+                return;
+
             var padding = 40f;
             var cellSize = 11f;
             var cellSpacing = 3f;
@@ -97,36 +173,26 @@ namespace Contributions.Views.Pages
                 IsAntialias = true
             };
             using var titleFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 24);
-            var titleText = "GitHub Contributions";
             var titleBounds = new SKRect();
-            titleFont.MeasureText(titleText, out titleBounds);
-            canvas.DrawText(titleText, (info.Width - titleBounds.Width) / 2, padding + 30, SKTextAlign.Left, titleFont, titlePaint);
+            titleFont.MeasureText(chart.Title, out titleBounds);
+            canvas.DrawText(
+                chart.Title,
+                (info.Width - titleBounds.Width) / 2,
+                offsetY + padding + 30,
+                SKTextAlign.Left,
+                titleFont,
+                titlePaint);
 
-            var contributions = ViewModel.ContributionData.Contributions;
+            var contributions = chart.Contributions;
             var contributionDict = contributions
                 .GroupBy(c => c.Date)
                 .ToDictionary(g => g.Key, g => g.Last());
 
-            var dates = contributions.Select(c => DateTime.Parse(c.Date)).OrderBy(d => d).ToList();
-            var lastDate = dates.Last();
-            var localToday = DateTime.Today;
-            var dayDelta = (localToday - lastDate.Date).Days;
-            if (dayDelta == 1)
-            {
-                lastDate = localToday;
-            }
-
-            var endWeekStart = lastDate;
-            while (endWeekStart.DayOfWeek != DayOfWeek.Sunday)
-                endWeekStart = endWeekStart.AddDays(-1);
-
-            const int weeks = 53;
-            var startDate = endWeekStart.AddDays(-7 * (weeks - 1));
-            var rangeEndDate = lastDate;
+            var (startDate, rangeEndDate, weeks) = GetChartRange(chart);
             var chartHeight = 7 * dayHeight;
 
             var startX = padding + 30;
-            var startY = padding + 80;
+            var startY = offsetY + padding + 80;
 
             // 曜日ラベル（Mon/Wed/Fri）
             using var dayLabelPaint = new SKPaint
@@ -239,6 +305,56 @@ namespace Contributions.Views.Pages
                 var py = (float)Math.Round(y);
                 canvas.DrawRect(px, py, size, size, paint);
             }
+        }
+
+        private static (DateTime StartDate, DateTime EndDate, int Weeks) GetChartRange(ChartData chart)
+        {
+            var dates = chart.Contributions.Select(c => DateTime.Parse(c.Date)).OrderBy(d => d).ToList();
+            if (dates.Count == 0)
+                return (DateTime.Today, DateTime.Today, 1);
+
+            var lastDate = dates.Last();
+            var localToday = DateTime.Today;
+            var dayDelta = (localToday - lastDate.Date).Days;
+            if (dayDelta == 1)
+            {
+                lastDate = localToday;
+            }
+
+            var endWeekStart = lastDate;
+            while (endWeekStart.DayOfWeek != DayOfWeek.Sunday)
+                endWeekStart = endWeekStart.AddDays(-1);
+
+            if (!chart.UseFullRange)
+            {
+                const int weeks = 53;
+                var startDate = endWeekStart.AddDays(-7 * (weeks - 1));
+                return (startDate, lastDate, weeks);
+            }
+
+            var firstDate = dates.First();
+            var startWeekStart = firstDate;
+            while (startWeekStart.DayOfWeek != DayOfWeek.Sunday)
+                startWeekStart = startWeekStart.AddDays(-1);
+
+            var totalWeeks = (int)((endWeekStart - startWeekStart).TotalDays / 7) + 1;
+            if (totalWeeks < 1)
+                totalWeeks = 1;
+
+            return (startWeekStart, lastDate, totalWeeks);
+        }
+
+        private static float ComputeChartWidth(ChartData chart)
+        {
+            const float padding = 40f;
+            const float cellSize = 11f;
+            const float cellSpacing = 3f;
+            const float leftLabelOffset = 30f;
+
+            var (_, _, weeks) = GetChartRange(chart);
+            var weekWidth = cellSize + cellSpacing;
+            var startX = padding + leftLabelOffset;
+            return startX + weeks * weekWidth + padding;
         }
 
         private void CopyButton_Click(object sender, RoutedEventArgs e)

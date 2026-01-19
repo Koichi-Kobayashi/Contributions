@@ -11,6 +11,8 @@ namespace Contributions.ViewModels.Pages
         private readonly SettingsService _settingsService;
         private bool _isInitialized = false;
         private bool _isLoadingSettings = false;
+        public const string DefaultYearOption = "デフォルト";
+        public const string AllYearsOption = "すべて";
 
         public DataViewModel(GitHubService gitHubService, SettingsService settingsService)
         {
@@ -35,6 +37,12 @@ namespace Contributions.ViewModels.Pages
 
         [ObservableProperty]
         private string _paletteName = "standard";
+
+        [ObservableProperty]
+        private List<string> _availableYears = [DefaultYearOption, AllYearsOption];
+
+        [ObservableProperty]
+        private string _selectedYear = DefaultYearOption;
 
         private bool _canShareToX;
 
@@ -104,6 +112,12 @@ namespace Contributions.ViewModels.Pages
         partial void OnContributionDataChanged(ContributionData? value)
         {
             OnPropertyChanged(nameof(HasResult));
+            CanShareToX = false;
+            UpdateYearOptions(value);
+        }
+
+        partial void OnSelectedYearChanged(string value)
+        {
             CanShareToX = false;
         }
 
@@ -207,6 +221,24 @@ namespace Contributions.ViewModels.Pages
         {
             var palette = Palettes.FirstOrDefault(p => p.Name == PaletteName) ?? Palettes[0];
             return palette.Grades;
+        }
+
+        public List<YearData> GetOrderedYears()
+        {
+            if (ContributionData == null || ContributionData.Years.Count == 0)
+                return [];
+
+            return ContributionData.Years;
+        }
+
+        private void UpdateYearOptions(ContributionData? data)
+        {
+            var options = new List<string> { DefaultYearOption, AllYearsOption };
+            if (data != null && data.Years.Count > 0)
+                options.AddRange(data.Years.Select(y => y.Year?.Trim()).Where(y => !string.IsNullOrWhiteSpace(y))!);
+
+            AvailableYears = options;
+            SelectedYear = DefaultYearOption;
         }
 
         public record PaletteItem(string Name, string[] Grades, string[] DisplayGrades);
