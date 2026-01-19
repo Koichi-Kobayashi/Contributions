@@ -32,12 +32,44 @@ namespace Contributions.Views.Pages
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(DataViewModel.ErrorMessage))
+            {
+                var message = ViewModel.ErrorMessage;
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    _ = ShowErrorMessageAsync(message);
+                }
+            }
+
             if (e.PropertyName == nameof(DataViewModel.ContributionData)
                 || e.PropertyName == nameof(DataViewModel.ThemeMode)
                 || e.PropertyName == nameof(DataViewModel.PaletteName))
             {
                 ChartCanvas.InvalidateVisual();
             }
+        }
+
+        private async Task ShowErrorMessageAsync(string message)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                _ = Dispatcher.InvokeAsync(async () => await ShowErrorMessageAsync(message));
+                return;
+            }
+
+            var messageBox = new Wpf.Ui.Controls.MessageBox
+            {
+                Title = "エラー",
+                Content = message,
+                PrimaryButtonText = "OK",
+                IsPrimaryButtonEnabled = true,
+                IsSecondaryButtonEnabled = false,
+                IsCloseButtonEnabled = false,
+                Owner = Window.GetWindow(this),
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+
+            await messageBox.ShowDialogAsync();
         }
 
         private void ChartCanvas_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)

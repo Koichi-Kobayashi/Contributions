@@ -118,16 +118,51 @@ namespace Contributions.ViewModels.Pages
         [RelayCommand]
         private async Task GenerateAsync()
         {
-            var username = GitHubService.CleanUsername(Url);
-            if (string.IsNullOrWhiteSpace(username))
+            ErrorMessage = null;
+            ContributionData = null;
+
+            var input = Url?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(input))
             {
                 ErrorMessage = "有効なGitHubのURLまたはユーザー名を入力してください";
                 return;
             }
 
+            string username;
+            if (Uri.TryCreate(input, UriKind.Absolute, out var uri))
+            {
+                if (!string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    ErrorMessage = "URLは https://github.com/ で始まるGitHubのURLを入力してください";
+                    return;
+                }
+
+                var path = uri.AbsolutePath.Trim('/');
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    ErrorMessage = "URLにユーザー名を含めてください";
+                    return;
+                }
+
+                username = path.Split('/')[0];
+            }
+            else if (input.StartsWith("github.com/", StringComparison.OrdinalIgnoreCase))
+            {
+                ErrorMessage = "URLは https://github.com/ で始まるGitHubのURLを入力してください";
+                return;
+            }
+            else
+            {
+                username = GitHubService.CleanUsername(input);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    ErrorMessage = "有効なGitHubのURLまたはユーザー名を入力してください";
+                    return;
+                }
+            }
+
             IsLoading = true;
-            ErrorMessage = null;
-            ContributionData = null;
 
             try
             {
