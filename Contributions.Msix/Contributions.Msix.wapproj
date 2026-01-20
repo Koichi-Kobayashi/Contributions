@@ -145,4 +145,16 @@
   <ItemGroup>
     <ProjectReference Include="..\Contributions\Contributions.csproj" />
   </ItemGroup>
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
+  </PropertyGroup>
+  <!-- StringsフォルダーをMSIXパッケージに含める -->
+  <ItemGroup>
+    <PRIResource Include="..\Contributions\Strings\**\*.resw">
+      <Link>Strings\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </PRIResource>
+  </ItemGroup>
+  <Target Name="SetAppxManifestVersion" BeforeTargets="Build">
+    <XmlPoke XmlInputPath="Package.appxmanifest" Query="/Package/Identity/@Version" Value="$(AppVersion).0" />
+  </Target>
 </Project>
