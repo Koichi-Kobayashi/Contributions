@@ -1,4 +1,5 @@
-﻿using Contributions.Views.Pages;
+using Contributions.Resources;
+using Contributions.Views.Pages;
 using Contributions.Views.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,6 +46,13 @@ namespace Contributions.Services
         {
             if (!Application.Current.Windows.OfType<MainWindow>().Any())
             {
+                var settingsService = _serviceProvider.GetService<SettingsService>();
+                if (settingsService != null)
+                {
+                    var settings = await settingsService.LoadAsync();
+                    Translations.ApplyCulture(settings.Language);
+                }
+
                 _navigationWindow = (
                     _serviceProvider.GetService(typeof(INavigationWindow)) as INavigationWindow
                 )!;

@@ -13,14 +13,21 @@ namespace Contributions.Resources
 
         public static void ApplyCulture(string? cultureName)
         {
-            var culture = string.IsNullOrWhiteSpace(cultureName)
-                ? CultureInfo.InstalledUICulture
-                : new CultureInfo(cultureName);
+            CultureInfo culture;
+            try
+            {
+                culture = string.IsNullOrWhiteSpace(cultureName)
+                    ? CultureInfo.InstalledUICulture
+                    : CultureInfo.GetCultureInfo(cultureName);
+            }
+            catch (CultureNotFoundException)
+            {
+                culture = CultureInfo.InstalledUICulture;
+            }
 
-            CultureInfo.CurrentCulture = culture;
             CultureInfo.CurrentUICulture = culture;
-            CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
+            TranslationSource.Instance.RaiseLanguageChanged();
         }
 
         public static string GetString(string key)

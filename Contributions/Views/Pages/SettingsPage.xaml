@@ -37,7 +37,7 @@
                 Text="Options" />
             <CheckBox
                 Margin="0,12,0,0"
-                Content="生成時／年変更時に画像を自動コピーします。"
+                Content="{helpers:Translate Key=Settings_AutoCopyCheckbox}"
                 IsChecked="{Binding ViewModel.AutoCopyToClipboard}" />
 
             <TextBlock

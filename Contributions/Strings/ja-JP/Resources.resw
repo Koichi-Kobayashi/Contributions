@@ -30,7 +30,7 @@
               <xsd:sequence>
                 <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required"/>
+              <xsd:attribute name="name" use="required"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
@@ -60,5 +60,14 @@
   </data>
   <data name="Snackbar_CopiedDetail" xml:space="preserve">
     <value>「Post to X」ボタンから X に投稿できます。</value>
+  </data>
+  <data name="YearOption_Default" xml:space="preserve">
+    <value>デフォルト</value>
+  </data>
+  <data name="YearOption_All" xml:space="preserve">
+    <value>すべて</value>
+  </data>
+  <data name="Settings_AutoCopyCheckbox" xml:space="preserve">
+    <value>生成時／年変更時に画像を自動コピーします。</value>
   </data>
 </root>

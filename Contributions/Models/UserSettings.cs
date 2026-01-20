@@ -11,5 +11,11 @@ namespace Contributions.Models
         public bool AutoCopyToClipboard { get; set; } = true;
 
         public string Language { get; set; } = string.Empty;
+
+        public string SelectedYear { get; set; } = string.Empty;
+
+        public string SelectedYearKind { get; set; } = string.Empty;
+
+        public string SelectedYearValue { get; set; } = string.Empty;
     }
 }

@@ -62,6 +62,8 @@ namespace Contributions.ViewModels.Pages
             AutoCopyToClipboard = settings.AutoCopyToClipboard;
             _dataViewModel.AutoCopyToClipboard = AutoCopyToClipboard;
 
+            Translations.ApplyCulture(settings.Language);
+
             _isLanguageInitializing = true;
             SelectedLanguage = Languages.FirstOrDefault(l => l.Code == settings.Language)
                 ?? Languages[0];
@@ -112,8 +114,11 @@ namespace Contributions.ViewModels.Pages
             if (_isLanguageInitializing)
                 return;
 
+            var currentSelection = _dataViewModel.GetCurrentYearSelection();
+
             Translations.ApplyCulture(value.Code);
             _dataViewModel.Language = value.Code;
+            _dataViewModel.RefreshYearOptions(currentSelection.Kind, currentSelection.Year);
             _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
         }
 

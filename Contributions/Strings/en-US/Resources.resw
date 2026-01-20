@@ -30,7 +30,7 @@
               <xsd:sequence>
                 <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required"/>
+              <xsd:attribute name="name" use="required"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
@@ -60,5 +60,14 @@
   </data>
   <data name="Snackbar_CopiedDetail" xml:space="preserve">
     <value>You can post to X from the "Post to X" button.</value>
+  </data>
+  <data name="YearOption_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="YearOption_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Settings_AutoCopyCheckbox" xml:space="preserve">
+    <value>Automatically copy the image on generate or year change.</value>
   </data>
 </root>

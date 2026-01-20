@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Data;
 using System.Windows.Markup;
 using Contributions.Resources;
 
@@ -11,7 +12,13 @@ namespace Contributions.Helpers
 
         public override object ProvideValue(IServiceProvider serviceProvider)
         {
-            return Translations.GetString(Key);
+            var binding = new Binding($"[{Key}]")
+            {
+                Source = TranslationSource.Instance,
+                Mode = BindingMode.OneWay
+            };
+
+            return binding.ProvideValue(serviceProvider);
         }
     }
 }

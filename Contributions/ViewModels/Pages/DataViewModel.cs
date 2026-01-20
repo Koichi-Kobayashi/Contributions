@@ -12,8 +12,27 @@ namespace Contributions.ViewModels.Pages
         private readonly SettingsService _settingsService;
         private bool _isInitialized = false;
         private bool _isLoadingSettings = false;
-        public const string DefaultYearOption = "デフォルト";
-        public const string AllYearsOption = "すべて";
+        private YearOptionKind? _preferredYearKind;
+        private string? _preferredYearValue;
+        public static string DefaultYearOption => Translations.GetString("YearOption_Default");
+        public static string AllYearsOption => Translations.GetString("YearOption_All");
+
+        public enum YearOptionKind
+        {
+            Default,
+            All,
+            Year
+        }
+
+        private static readonly HashSet<string> DefaultLabels =
+        [
+            "Default", "デフォルト", "Standard", "Predeterminado", "Par défaut", "डिफ़ॉल्ट", "기본", "默认"
+        ];
+
+        private static readonly HashSet<string> AllLabels =
+        [
+            "All", "すべて", "Alle", "Todos", "Tous", "सभी", "전체", "全部"
+        ];
 
         public DataViewModel(GitHubService gitHubService, SettingsService settingsService)
         {
@@ -101,14 +120,16 @@ namespace Contributions.ViewModels.Pages
                 if (!string.IsNullOrWhiteSpace(settings.Url))
                     Url = settings.Url;
                 Language = settings.Language;
+                (_preferredYearKind, _preferredYearValue) = GetPreferredYearSelection(settings);
                 AutoCopyToClipboard = settings.AutoCopyToClipboard;
+
+                Translations.ApplyCulture(Language);
+                ApplySavedYearSelection();
             }
             finally
             {
                 _isLoadingSettings = false;
             }
-
-            Translations.ApplyCulture(Language);
 
             if (!string.IsNullOrWhiteSpace(Url))
                 await GenerateCoreAsync(isManual: false);
@@ -130,12 +151,19 @@ namespace Contributions.ViewModels.Pages
         {
             OnPropertyChanged(nameof(HasResult));
             CanShareToX = HasResult;
-            UpdateYearOptions(value);
+            UpdateYearOptions(value, _preferredYearKind, _preferredYearValue);
+            _preferredYearKind = null;
+            _preferredYearValue = null;
         }
 
         partial void OnSelectedYearChanged(string value)
         {
             CanShareToX = HasResult;
+
+            if (_isLoadingSettings || IsLoading || ContributionData == null)
+                return;
+
+            _ = _settingsService.SaveAsync(CreateSettingsSnapshot());
         }
 
         partial void OnThemeModeChanged(string value)
@@ -160,6 +188,11 @@ namespace Contributions.ViewModels.Pages
         private async Task GenerateCoreAsync(bool isManual)
         {
             ErrorMessage = null;
+            if (isManual)
+            {
+                _preferredYearKind = GetCurrentYearSelection().Kind;
+                _preferredYearValue = GetCurrentYearSelection().Year;
+            }
             ContributionData = null;
 
             var input = Url?.Trim() ?? string.Empty;
@@ -240,7 +273,10 @@ namespace Contributions.ViewModels.Pages
                 ThemeMode = ThemeMode,
                 PaletteName = PaletteName,
                 AutoCopyToClipboard = AutoCopyToClipboard,
-                Language = Language
+                Language = Language,
+                SelectedYear = SelectedYear,
+                SelectedYearKind = GetCurrentYearSelection().Kind?.ToString().ToLowerInvariant() ?? string.Empty,
+                SelectedYearValue = GetCurrentYearSelection().Year ?? string.Empty
             };
         }
 
@@ -265,14 +301,104 @@ namespace Contributions.ViewModels.Pages
             return ContributionData.Years;
         }
 
-        private void UpdateYearOptions(ContributionData? data)
+        private void UpdateYearOptions(
+            ContributionData? data,
+            YearOptionKind? preferredKind,
+            string? preferredYear)
         {
             var options = new List<string> { DefaultYearOption, AllYearsOption };
             if (data != null && data.Years.Count > 0)
                 options.AddRange(data.Years.Select(y => y.Year?.Trim()).Where(y => !string.IsNullOrWhiteSpace(y))!);
 
             AvailableYears = options;
+            if (preferredKind == YearOptionKind.All)
+            {
+                SelectedYear = AllYearsOption;
+                return;
+            }
+
+            if (preferredKind == YearOptionKind.Default)
+            {
+                SelectedYear = DefaultYearOption;
+                return;
+            }
+
+            if (preferredKind == YearOptionKind.Year
+                && !string.IsNullOrWhiteSpace(preferredYear)
+                && options.Contains(preferredYear))
+            {
+                SelectedYear = preferredYear;
+                return;
+            }
+
             SelectedYear = DefaultYearOption;
+        }
+
+        public void RefreshYearOptions(YearOptionKind? preferredKind, string? preferredYear)
+        {
+            UpdateYearOptions(ContributionData, preferredKind, preferredYear);
+        }
+
+        private void ApplySavedYearSelection()
+        {
+            var options = new List<string> { DefaultYearOption, AllYearsOption };
+            if (_preferredYearKind == YearOptionKind.Year
+                && !string.IsNullOrWhiteSpace(_preferredYearValue)
+                && !options.Contains(_preferredYearValue))
+            {
+                options.Add(_preferredYearValue);
+            }
+
+            AvailableYears = options;
+
+            if (_preferredYearKind == YearOptionKind.All)
+                SelectedYear = AllYearsOption;
+            else if (_preferredYearKind == YearOptionKind.Default)
+                SelectedYear = DefaultYearOption;
+            else if (_preferredYearKind == YearOptionKind.Year
+                && !string.IsNullOrWhiteSpace(_preferredYearValue))
+                SelectedYear = _preferredYearValue;
+            else
+                SelectedYear = DefaultYearOption;
+        }
+
+        public (YearOptionKind? Kind, string? Year) GetCurrentYearSelection()
+        {
+            if (SelectedYear == DefaultYearOption)
+                return (YearOptionKind.Default, null);
+
+            if (SelectedYear == AllYearsOption)
+                return (YearOptionKind.All, null);
+
+            return (YearOptionKind.Year, SelectedYear);
+        }
+
+        private static (YearOptionKind? Kind, string? Year) GetPreferredYearSelection(UserSettings settings)
+        {
+            if (!string.IsNullOrWhiteSpace(settings.SelectedYearKind))
+            {
+                var kind = settings.SelectedYearKind.Trim().ToLowerInvariant();
+                if (kind == "default")
+                    return (YearOptionKind.Default, null);
+                if (kind == "all")
+                    return (YearOptionKind.All, null);
+                if (kind == "year")
+                    return (YearOptionKind.Year, settings.SelectedYearValue);
+            }
+
+            if (!string.IsNullOrWhiteSpace(settings.SelectedYearValue))
+                return (YearOptionKind.Year, settings.SelectedYearValue);
+
+            if (string.IsNullOrWhiteSpace(settings.SelectedYear))
+                return (null, null);
+
+            if (DefaultLabels.Contains(settings.SelectedYear))
+                return (YearOptionKind.Default, null);
+
+            if (AllLabels.Contains(settings.SelectedYear))
+                return (YearOptionKind.All, null);
+
+            return (YearOptionKind.Year, settings.SelectedYear);
         }
 
         public record PaletteItem(string Name, string[] Grades, string[] DisplayGrades);

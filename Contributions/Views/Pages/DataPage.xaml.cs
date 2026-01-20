@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using Contributions.Helpers;
 using Contributions.Models;
@@ -393,6 +394,15 @@ namespace Contributions.Views.Pages
 
         private void CopyChartToClipboard(bool showSnackbar)
         {
+            if (!Dispatcher.CheckAccess())
+            {
+                _ = Dispatcher.InvokeAsync(() => CopyChartToClipboard(showSnackbar));
+                return;
+            }
+
+            if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+                return;
+
             if (ViewModel.ContributionData == null)
                 return;
 
@@ -426,7 +436,18 @@ namespace Contributions.Views.Pages
                 bitmapImage.EndInit();
                 bitmapImage.Freeze();
 
-                Clipboard.SetImage(bitmapImage);    // ここで例外が出るが無視してOK
+                try
+                {
+                    Clipboard.SetImage(bitmapImage);
+                }
+                catch (NotSupportedException)
+                {
+                    return;
+                }
+                catch (System.Runtime.InteropServices.ExternalException)
+                {
+                    return;
+                }
                 ViewModel.CanShareToX = true;
 
                 if (showSnackbar)
