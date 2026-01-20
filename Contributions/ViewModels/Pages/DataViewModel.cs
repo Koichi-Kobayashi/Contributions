@@ -39,10 +39,19 @@ namespace Contributions.ViewModels.Pages
         private string _paletteName = "standard";
 
         [ObservableProperty]
+        private bool _autoCopyToClipboard = true;
+
+        [ObservableProperty]
+        private string _copyButtonText = "Copy to Clipboard";
+
+        [ObservableProperty]
         private List<string> _availableYears = [DefaultYearOption, AllYearsOption];
 
         [ObservableProperty]
         private string _selectedYear = DefaultYearOption;
+
+        [ObservableProperty]
+        private bool _isManualGenerateRequested;
 
         private bool _canShareToX;
 
@@ -87,6 +96,7 @@ namespace Contributions.ViewModels.Pages
                     PaletteName = settings.PaletteName;
                 if (!string.IsNullOrWhiteSpace(settings.Url))
                     Url = settings.Url;
+                AutoCopyToClipboard = settings.AutoCopyToClipboard;
             }
             finally
             {
@@ -94,7 +104,7 @@ namespace Contributions.ViewModels.Pages
             }
 
             if (!string.IsNullOrWhiteSpace(Url))
-                await GenerateAsync();
+                await GenerateCoreAsync(isManual: false);
 
             _isInitialized = true;
         }
@@ -112,13 +122,13 @@ namespace Contributions.ViewModels.Pages
         partial void OnContributionDataChanged(ContributionData? value)
         {
             OnPropertyChanged(nameof(HasResult));
-            CanShareToX = false;
+            CanShareToX = HasResult;
             UpdateYearOptions(value);
         }
 
         partial void OnSelectedYearChanged(string value)
         {
-            CanShareToX = false;
+            CanShareToX = HasResult;
         }
 
         partial void OnThemeModeChanged(string value)
@@ -129,8 +139,18 @@ namespace Contributions.ViewModels.Pages
                 ApplicationThemeManager.Apply(ApplicationTheme.Dark);
         }
 
+        partial void OnAutoCopyToClipboardChanged(bool value)
+        {
+            CopyButtonText = value ? "Copy again" : "Copy to Clipboard";
+        }
+
         [RelayCommand]
         private async Task GenerateAsync()
+        {
+            await GenerateCoreAsync(isManual: true);
+        }
+
+        private async Task GenerateCoreAsync(bool isManual)
         {
             ErrorMessage = null;
             ContributionData = null;
@@ -176,6 +196,9 @@ namespace Contributions.ViewModels.Pages
                 }
             }
 
+            if (isManual)
+                IsManualGenerateRequested = true;
+
             IsLoading = true;
 
             try
@@ -197,6 +220,8 @@ namespace Contributions.ViewModels.Pages
             finally
             {
                 IsLoading = false;
+                if (isManual)
+                    IsManualGenerateRequested = false;
             }
         }
 
@@ -206,7 +231,8 @@ namespace Contributions.ViewModels.Pages
             {
                 Url = Url,
                 ThemeMode = ThemeMode,
-                PaletteName = PaletteName
+                PaletteName = PaletteName,
+                AutoCopyToClipboard = AutoCopyToClipboard
             };
         }
 

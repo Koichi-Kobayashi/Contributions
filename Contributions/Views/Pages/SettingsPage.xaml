@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="Contributions.Views.Pages.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -28,6 +28,17 @@
                 FontWeight="Medium"
                 Text="About Contributions" />
             <TextBlock Margin="0,12,0,0" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+
+            <Separator Margin="0,20,0,12" />
+
+            <TextBlock
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Options" />
+            <CheckBox
+                Margin="0,12,0,0"
+                Content="生成時／年変更時に画像を自動コピーします。"
+                IsChecked="{Binding ViewModel.AutoCopyToClipboard}" />
         </StackPanel>
     </Grid>
 </Page>

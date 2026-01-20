@@ -38,13 +38,10 @@
             CornerRadius="6">
             <StackPanel>
                 <TextBlock
+                    Margin="0,0,0,30"
                     FontSize="22"
                     FontWeight="SemiBold"
                     Text="GitHub Contributions Chart Generator" />
-                <TextBlock
-                    Margin="0,6,0,20"
-                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="All your contributions in one image!" />
 
                 <TextBlock Text="GitHub URL / Username" />
                 <TextBox
@@ -131,31 +128,25 @@
                 <ComboBox
                     Height="40"
                     Margin="0,6,0,12"
+                    IsEnabled="{Binding ViewModel.HasResult}"
                     ItemsSource="{Binding ViewModel.AvailableYears}"
-                    SelectedItem="{Binding ViewModel.SelectedYear}"
-                    IsEnabled="{Binding ViewModel.HasResult}" />
+                    SelectedItem="{Binding ViewModel.SelectedYear}" />
             </StackPanel>
         </Border>
 
         <!--  右側パネル  -->
-        <ScrollViewer Grid.Column="1"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto">
+        <ScrollViewer
+            Grid.Column="1"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="20">
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    FontSize="16"
-                    FontWeight="Medium"
-                    Text="Your chart is ready!"
-                    Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
-
                 <ui:Button
                     x:Name="CopyButton"
                     Margin="0,12,0,16"
                     HorizontalAlignment="Center"
                     Appearance="Primary"
                     Click="CopyButton_Click"
-                    Content="Copy to Clipboard"
+                    Content="{Binding ViewModel.CopyButtonText}"
                     Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                 <ui:Button

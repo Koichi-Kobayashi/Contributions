@@ -7,5 +7,7 @@ namespace Contributions.Models
         public string ThemeMode { get; set; } = "Dark";
 
         public string PaletteName { get; set; } = "standard";
+
+        public bool AutoCopyToClipboard { get; set; } = true;
     }
 }

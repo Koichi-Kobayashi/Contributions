@@ -1,4 +1,5 @@
-﻿using Wpf.Ui.Abstractions.Controls;
+using Contributions.Services;
+using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
 namespace Contributions.ViewModels.Pages
@@ -6,6 +7,14 @@ namespace Contributions.ViewModels.Pages
     public partial class SettingsViewModel : ObservableObject, INavigationAware
     {
         private bool _isInitialized = false;
+        private readonly SettingsService _settingsService;
+        private readonly DataViewModel _dataViewModel;
+
+        public SettingsViewModel(SettingsService settingsService, DataViewModel dataViewModel)
+        {
+            _settingsService = settingsService;
+            _dataViewModel = dataViewModel;
+        }
 
         [ObservableProperty]
         private string _appVersion = String.Empty;
@@ -13,20 +22,27 @@ namespace Contributions.ViewModels.Pages
         [ObservableProperty]
         private ApplicationTheme _currentTheme = ApplicationTheme.Unknown;
 
-        public Task OnNavigatedToAsync()
+        [ObservableProperty]
+        private bool _autoCopyToClipboard = true;
+
+        public async Task OnNavigatedToAsync()
         {
             if (!_isInitialized)
-                InitializeViewModel();
+                await InitializeViewModelAsync();
 
-            return Task.CompletedTask;
+            return;
         }
 
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
-        private void InitializeViewModel()
+        private async Task InitializeViewModelAsync()
         {
             CurrentTheme = ApplicationThemeManager.GetAppTheme();
             AppVersion = GetAssemblyVersion();
+
+            var settings = await _settingsService.LoadAsync();
+            AutoCopyToClipboard = settings.AutoCopyToClipboard;
+            _dataViewModel.AutoCopyToClipboard = AutoCopyToClipboard;
 
             _isInitialized = true;
         }
@@ -60,6 +76,12 @@ namespace Contributions.ViewModels.Pages
 
                     break;
             }
+        }
+
+        partial void OnAutoCopyToClipboardChanged(bool value)
+        {
+            _dataViewModel.AutoCopyToClipboard = value;
+            _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
         }
     }
 }

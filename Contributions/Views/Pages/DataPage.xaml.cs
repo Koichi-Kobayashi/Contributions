@@ -21,6 +21,7 @@ namespace Contributions.Views.Pages
         private readonly ISnackbarService _snackbarService;
         private const float SingleChartHeight = 320f;
         private const float ChartSpacing = 40f;
+        private bool _wasLoading;
 
         private record ChartData(string Title, List<Contribution> Contributions, bool UseFullRange);
 
@@ -32,6 +33,7 @@ namespace Contributions.Views.Pages
 
             InitializeComponent();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _wasLoading = ViewModel.IsLoading;
         }
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -50,11 +52,31 @@ namespace Contributions.Views.Pages
             {
                 UpdateChartCanvasSize();
                 ChartCanvas.InvalidateVisual();
+
+                if (e.PropertyName == nameof(DataViewModel.SelectedYear)
+                    && ViewModel.AutoCopyToClipboard
+                    && ViewModel.HasResult
+                    && !ViewModel.IsLoading)
+                {
+                    CopyChartToClipboard(showSnackbar: false);
+                }
             }
             else if (e.PropertyName == nameof(DataViewModel.ThemeMode)
                 || e.PropertyName == nameof(DataViewModel.PaletteName))
             {
                 ChartCanvas.InvalidateVisual();
+            }
+            else if (e.PropertyName == nameof(DataViewModel.IsLoading))
+            {
+                if (_wasLoading
+                    && !ViewModel.IsLoading
+                    && ViewModel.AutoCopyToClipboard
+                    && ViewModel.HasResult)
+                {
+                    CopyChartToClipboard(showSnackbar: true);
+                }
+
+                _wasLoading = ViewModel.IsLoading;
             }
         }
 
@@ -359,18 +381,27 @@ namespace Contributions.Views.Pages
 
         private void CopyButton_Click(object sender, RoutedEventArgs e)
         {
+            CopyChartToClipboard(showSnackbar: true);
+        }
+
+        private void CopyChartToClipboard(bool showSnackbar)
+        {
             if (ViewModel.ContributionData == null)
                 return;
 
             try
             {
-                var width = (int)Math.Round(ChartCanvas.ActualWidth);
-                var height = (int)Math.Round(ChartCanvas.ActualHeight);
-                if (width <= 0 || height <= 0)
-                {
-                    width = 900;
-                    height = 600;
-                }
+                var charts = GetChartItems();
+                if (charts.Count == 0)
+                    return;
+
+                var chartCount = Math.Max(1, charts.Count);
+                var calculatedHeight = SingleChartHeight * chartCount + ChartSpacing * Math.Max(0, chartCount - 1);
+                var maxWidth = charts.Max(ComputeChartWidth);
+                var calculatedWidth = Math.Max(900f, maxWidth);
+
+                var width = (int)Math.Round(calculatedWidth);
+                var height = (int)Math.Round(calculatedHeight);
 
                 var info = new SKImageInfo(width, height);
                 using var surface = SKSurface.Create(info);
@@ -391,12 +422,15 @@ namespace Contributions.Views.Pages
                 Clipboard.SetImage(bitmapImage);    // ここで例外が出るが無視してOK
                 ViewModel.CanShareToX = true;
 
-                _snackbarService.Show(
-                    "Copied to clipboard.",
-                    "You can post it to X using the Post to X button.",
-                    ControlAppearance.Success,
-                    new SymbolIcon(SymbolRegular.Checkmark24),
-                    TimeSpan.FromSeconds(2));
+                if (showSnackbar)
+                {
+                    _snackbarService.Show(
+                        "クリップボードにコピーしました。",
+                        "「Post to X」ボタンから X に投稿できます。",
+                        ControlAppearance.Success,
+                        new SymbolIcon(SymbolRegular.Checkmark24),
+                        TimeSpan.FromSeconds(4));
+                }
             }
             catch
             {
