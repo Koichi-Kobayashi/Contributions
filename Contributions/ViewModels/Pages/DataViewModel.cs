@@ -1,4 +1,5 @@
 using Contributions.Models;
+using Contributions.Resources;
 using Contributions.Services;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
@@ -43,6 +44,9 @@ namespace Contributions.ViewModels.Pages
 
         [ObservableProperty]
         private string _copyButtonText = "Copy to Clipboard";
+
+        [ObservableProperty]
+        private string _language = string.Empty;
 
         [ObservableProperty]
         private List<string> _availableYears = [DefaultYearOption, AllYearsOption];
@@ -96,12 +100,15 @@ namespace Contributions.ViewModels.Pages
                     PaletteName = settings.PaletteName;
                 if (!string.IsNullOrWhiteSpace(settings.Url))
                     Url = settings.Url;
+                Language = settings.Language;
                 AutoCopyToClipboard = settings.AutoCopyToClipboard;
             }
             finally
             {
                 _isLoadingSettings = false;
             }
+
+            Translations.ApplyCulture(Language);
 
             if (!string.IsNullOrWhiteSpace(Url))
                 await GenerateCoreAsync(isManual: false);
@@ -232,7 +239,8 @@ namespace Contributions.ViewModels.Pages
                 Url = Url,
                 ThemeMode = ThemeMode,
                 PaletteName = PaletteName,
-                AutoCopyToClipboard = AutoCopyToClipboard
+                AutoCopyToClipboard = AutoCopyToClipboard,
+                Language = Language
             };
         }
 

@@ -9,5 +9,7 @@ namespace Contributions.Models
         public string PaletteName { get; set; } = "standard";
 
         public bool AutoCopyToClipboard { get; set; } = true;
+
+        public string Language { get; set; } = string.Empty;
     }
 }

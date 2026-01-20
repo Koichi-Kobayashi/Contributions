@@ -1,6 +1,103 @@
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Reflection;
+using System.Xml.Linq;
+
 namespace Contributions.Resources
 {
-    public partial class Translations
+    public static partial class Translations
     {
+        private static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string>> Cache = new();
+        private static readonly Assembly Assembly = typeof(Translations).Assembly;
+        private static readonly string[] FallbackCultures = ["en-US"];
+
+        public static void ApplyCulture(string? cultureName)
+        {
+            var culture = string.IsNullOrWhiteSpace(cultureName)
+                ? CultureInfo.InstalledUICulture
+                : new CultureInfo(cultureName);
+
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+            CultureInfo.DefaultThreadCurrentCulture = culture;
+            CultureInfo.DefaultThreadCurrentUICulture = culture;
+        }
+
+        public static string GetString(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return string.Empty;
+
+            var value = GetValueForCulture(key, CultureInfo.CurrentUICulture);
+            return string.IsNullOrWhiteSpace(value) ? key : value;
+        }
+
+        public static string Format(string key, params object[] args)
+        {
+            return string.Format(CultureInfo.CurrentUICulture, GetString(key), args);
+        }
+
+        private static string? GetValueForCulture(string key, CultureInfo culture)
+        {
+            var current = culture;
+            while (!string.IsNullOrWhiteSpace(current.Name))
+            {
+                var value = GetFromResource(current.Name, key);
+                if (!string.IsNullOrWhiteSpace(value))
+                    return value;
+
+                current = current.Parent;
+            }
+
+            var neutral = GetFromResource(string.Empty, key);
+            if (!string.IsNullOrWhiteSpace(neutral))
+                return neutral;
+
+            foreach (var fallback in FallbackCultures)
+            {
+                var value = GetFromResource(fallback, key);
+                if (!string.IsNullOrWhiteSpace(value))
+                    return value;
+            }
+
+            return null;
+        }
+
+        private static string? GetFromResource(string cultureName, string key)
+        {
+            var resourceName = GetResourceName(cultureName);
+            var map = Cache.GetOrAdd(resourceName, LoadResource);
+            return map.TryGetValue(key, out var value) ? value : null;
+        }
+
+        private static string GetResourceName(string cultureName)
+        {
+            if (string.IsNullOrWhiteSpace(cultureName))
+                return "Contributions.Strings.Resources.resw";
+
+            var normalized = cultureName.Replace('-', '_');
+            return $"Contributions.Strings.{normalized}.Resources.resw";
+        }
+
+        private static IReadOnlyDictionary<string, string> LoadResource(string resourceName)
+        {
+            using var stream = Assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+                return new Dictionary<string, string>();
+
+            var doc = XDocument.Load(stream);
+            var entries = doc.Root?
+                .Elements("data")
+                .Select(e => new
+                {
+                    Key = e.Attribute("name")?.Value,
+                    Value = e.Element("value")?.Value
+                })
+                .Where(e => !string.IsNullOrWhiteSpace(e.Key))
+                .ToDictionary(e => e.Key!, e => e.Value ?? string.Empty)
+                ?? new Dictionary<string, string>();
+
+            return entries;
+        }
     }
 }

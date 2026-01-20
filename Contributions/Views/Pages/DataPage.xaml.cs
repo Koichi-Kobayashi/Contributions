@@ -3,8 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using Contributions.Helpers;
-using Contributions.Services;
 using Contributions.Models;
+using Contributions.Resources;
+using Contributions.Services;
 using Contributions.ViewModels.Pages;
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -90,9 +91,9 @@ namespace Contributions.Views.Pages
 
             var messageBox = new Wpf.Ui.Controls.MessageBox
             {
-                Title = "エラー",
+                Title = Translations.GetString("Error_Title"),
                 Content = message,
-                PrimaryButtonText = "OK",
+                PrimaryButtonText = Translations.GetString("Error_Ok"),
                 IsPrimaryButtonEnabled = true,
                 IsSecondaryButtonEnabled = false,
                 IsCloseButtonEnabled = false,
@@ -304,7 +305,13 @@ namespace Contributions.Views.Pages
             var legendCenterY = legendY;
             var legendMetrics = legendFont.Metrics;
             var legendTextBaseline = legendCenterY - (legendMetrics.Ascent + legendMetrics.Descent) / 2;
-            canvas.DrawText("Less", startX, legendTextBaseline, SKTextAlign.Left, legendFont, legendLabelPaint);
+            canvas.DrawText(
+                "Less",
+                startX,
+                legendTextBaseline,
+                SKTextAlign.Left,
+                legendFont,
+                legendLabelPaint);
 
             var legendX = startX + 50;
             for (int i = 0; i < paletteColors.Length; i++)
@@ -425,8 +432,8 @@ namespace Contributions.Views.Pages
                 if (showSnackbar)
                 {
                     _snackbarService.Show(
-                        "クリップボードにコピーしました。",
-                        "「Post to X」ボタンから X に投稿できます。",
+                        Translations.GetString("Snackbar_CopiedTitle"),
+                        Translations.GetString("Snackbar_CopiedDetail"),
                         ControlAppearance.Success,
                         new SymbolIcon(SymbolRegular.Checkmark24),
                         TimeSpan.FromSeconds(4));

@@ -39,6 +39,18 @@
                 Margin="0,12,0,0"
                 Content="生成時／年変更時に画像を自動コピーします。"
                 IsChecked="{Binding ViewModel.AutoCopyToClipboard}" />
+
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Language" />
+            <ComboBox
+                Height="40"
+                Margin="0,6,0,0"
+                ItemsSource="{Binding ViewModel.Languages}"
+                SelectedItem="{Binding ViewModel.SelectedLanguage}"
+                DisplayMemberPath="DisplayName" />
         </StackPanel>
     </Grid>
 </Page>
