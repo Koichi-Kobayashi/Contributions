@@ -444,7 +444,7 @@ namespace Contributions.Views.Pages
             var profileUrl = string.IsNullOrWhiteSpace(username) ? null : $"https://github.com/{username}";
 
             XShare.OpenTweetComposer(
-                text: "My GitHub contributions this year 🚀\n(press Ctrl+V to paste the image)",
+                text: "My GitHub contributions this year 🚀\n",
                 url: profileUrl,
                 hashtags: "GitHub");
         }
