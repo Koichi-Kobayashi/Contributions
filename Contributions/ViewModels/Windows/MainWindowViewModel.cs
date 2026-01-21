@@ -1,8 +1,11 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Wpf.Ui.Controls;
 
 namespace Contributions.ViewModels.Windows
 {
+    /// <summary>
+    /// メインウィンドウの表示情報を保持するViewModel。
+    /// </summary>
     public partial class MainWindowViewModel : ObservableObject
     {
         [ObservableProperty]

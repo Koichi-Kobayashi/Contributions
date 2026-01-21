@@ -4,6 +4,9 @@ using Contributions.Models;
 
 namespace Contributions.Services
 {
+    /// <summary>
+    /// アプリ設定の読み書きを行うサービス。
+    /// </summary>
     public class SettingsService
     {
         private const string SettingsFileName = "settings.json";
@@ -15,6 +18,9 @@ namespace Contributions.Services
 
         private static string SettingsPath => Path.Combine(SettingsDirectory, SettingsFileName);
 
+        /// <summary>
+        /// 設定ファイルから設定を読み込む。
+        /// </summary>
         public async Task<UserSettings> LoadAsync()
         {
             if (!File.Exists(SettingsPath))
@@ -32,6 +38,9 @@ namespace Contributions.Services
             }
         }
 
+        /// <summary>
+        /// 設定ファイルへ設定を保存する。
+        /// </summary>
         public async Task SaveAsync(UserSettings settings)
         {
             Directory.CreateDirectory(SettingsDirectory);

@@ -16,6 +16,9 @@ using Wpf.Ui.Controls;
 
 namespace Contributions.Views.Pages
 {
+    /// <summary>
+    /// コントリビューション表示ページ。
+    /// </summary>
     public partial class DataPage : INavigableView<DataViewModel>
     {
         public DataViewModel ViewModel { get; }
@@ -25,8 +28,14 @@ namespace Contributions.Views.Pages
         private const float ChartSpacing = 40f;
         private bool _wasLoading;
 
+        /// <summary>
+        /// 描画対象のチャート情報。
+        /// </summary>
         private record ChartData(string Title, List<Contribution> Contributions, bool UseFullRange);
 
+        /// <summary>
+        /// DataPageを生成する。
+        /// </summary>
         public DataPage(DataViewModel viewModel, ISnackbarService snackbarService)
         {
             ViewModel = viewModel;
@@ -38,6 +47,9 @@ namespace Contributions.Views.Pages
             _wasLoading = ViewModel.IsLoading;
         }
 
+        /// <summary>
+        /// ViewModelの変更を監視して表示を更新する。
+        /// </summary>
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(DataViewModel.ErrorMessage))
@@ -82,6 +94,9 @@ namespace Contributions.Views.Pages
             }
         }
 
+        /// <summary>
+        /// エラーメッセージをモーダルで表示する。
+        /// </summary>
         private async Task ShowErrorMessageAsync(string message)
         {
             if (!Dispatcher.CheckAccess())
@@ -105,6 +120,9 @@ namespace Contributions.Views.Pages
             await messageBox.ShowDialogAsync();
         }
 
+        /// <summary>
+        /// チャートの描画処理。
+        /// </summary>
         private void ChartCanvas_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)
         {
             if (ViewModel.ContributionData == null || ViewModel.ContributionData.Contributions.Count == 0)
@@ -129,6 +147,9 @@ namespace Contributions.Views.Pages
             }
         }
 
+        /// <summary>
+        /// チャートの数に合わせてキャンバスサイズを調整する。
+        /// </summary>
         private void UpdateChartCanvasSize()
         {
             if (ViewModel.ContributionData == null || ViewModel.ContributionData.Contributions.Count == 0)
@@ -143,6 +164,9 @@ namespace Contributions.Views.Pages
             ChartCanvas.Width = Math.Max(900f, maxWidth);
         }
 
+        /// <summary>
+        /// 選択年に応じたチャート情報を取得する。
+        /// </summary>
         private List<ChartData> GetChartItems()
         {
             var data = ViewModel.ContributionData;
@@ -173,6 +197,9 @@ namespace Contributions.Views.Pages
             return [new ChartData("GitHub Contributions", data.Contributions, false)];
         }
 
+        /// <summary>
+        /// チャートを描画する。
+        /// </summary>
         private void DrawChart(
             SKCanvas canvas,
             SKImageInfo info,
@@ -337,6 +364,9 @@ namespace Contributions.Views.Pages
             }
         }
 
+        /// <summary>
+        /// チャートの表示範囲を算出する。
+        /// </summary>
         private static (DateTime StartDate, DateTime EndDate, int Weeks) GetChartRange(ChartData chart)
         {
             var dates = chart.Contributions.Select(c => DateTime.Parse(c.Date)).OrderBy(d => d).ToList();
@@ -374,6 +404,9 @@ namespace Contributions.Views.Pages
             return (startWeekStart, lastDate, totalWeeks);
         }
 
+        /// <summary>
+        /// チャートの必要幅を計算する。
+        /// </summary>
         private static float ComputeChartWidth(ChartData chart)
         {
             const float padding = 40f;
@@ -387,11 +420,17 @@ namespace Contributions.Views.Pages
             return startX + weeks * weekWidth + padding;
         }
 
+        /// <summary>
+        /// クリップボードへコピーを実行する。
+        /// </summary>
         private void CopyButton_Click(object sender, RoutedEventArgs e)
         {
             CopyChartToClipboard(showSnackbar: true);
         }
 
+        /// <summary>
+        /// 現在のチャートを画像としてクリップボードにコピーする。
+        /// </summary>
         private void CopyChartToClipboard(bool showSnackbar)
         {
             if (!Dispatcher.CheckAccess())
@@ -466,6 +505,9 @@ namespace Contributions.Views.Pages
             }
         }
 
+        /// <summary>
+        /// X共有画面を開く。
+        /// </summary>
         private void ShareXButton_Click(object sender, RoutedEventArgs e)
         {
             var username = GitHubService.CleanUsername(ViewModel.Url);
@@ -477,6 +519,9 @@ namespace Contributions.Views.Pages
                 hashtags: "GitHub");
         }
 
+        /// <summary>
+        /// 強度値を0〜4の範囲に丸める。
+        /// </summary>
         private static int ClampIntensity(int intensity)
         {
             if (intensity < 0) return 0;
@@ -484,6 +529,9 @@ namespace Contributions.Views.Pages
             return intensity;
         }
 
+        /// <summary>
+        /// 月番号から表示用ラベルを取得する。
+        /// </summary>
         private static string GetMonthLabel(int month)
         {
             var labels = new[]

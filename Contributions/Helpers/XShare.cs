@@ -2,8 +2,14 @@ using System.Diagnostics;
 
 namespace Contributions.Helpers
 {
+    /// <summary>
+    /// X（旧Twitter）の共有画面を開くヘルパー。
+    /// </summary>
     public static class XShare
     {
+        /// <summary>
+        /// ツイート作成画面を既定ブラウザで開く。
+        /// </summary>
         public static void OpenTweetComposer(string text, string? url = null, string? hashtags = null)
         {
             var parameters = new List<string>();

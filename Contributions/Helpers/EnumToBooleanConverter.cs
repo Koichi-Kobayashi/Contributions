@@ -1,11 +1,17 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Windows.Data;
 using Wpf.Ui.Appearance;
 
 namespace Contributions.Helpers
 {
+    /// <summary>
+    /// Enum値と一致するかをboolに変換するコンバーター。
+    /// </summary>
     internal class EnumToBooleanConverter : IValueConverter
     {
+        /// <summary>
+        /// 指定されたEnum名と一致するかを判定する。
+        /// </summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (parameter is not String enumString)
@@ -23,6 +29,9 @@ namespace Contributions.Helpers
             return enumValue.Equals(value);
         }
 
+        /// <summary>
+        /// 指定されたEnum名をEnum値に変換する。
+        /// </summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (parameter is not String enumString)

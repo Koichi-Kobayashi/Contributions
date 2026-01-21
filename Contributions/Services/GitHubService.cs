@@ -5,10 +5,19 @@ using HtmlAgilityPack;
 
 namespace Contributions.Services
 {
+    /// <summary>
+    /// GitHubのプロフィールページからコントリビューション情報を取得するサービス。
+    /// </summary>
     public class GitHubService
     {
+        /// <summary>
+        /// 年ごとの取得範囲を表す。
+        /// </summary>
         public record YearRange(string Year, string From, string To);
 
+        /// <summary>
+        /// 入力文字列からGitHubユーザー名を抽出する。
+        /// </summary>
         public static string CleanUsername(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -21,6 +30,9 @@ namespace Contributions.Services
             return Regex.Replace(input, @"^(http|https)://(?!www\.)github\.com/", "").Trim();
         }
 
+        /// <summary>
+        /// 全年分のデータを取得して集約する。
+        /// </summary>
         public async Task<ContributionData> FetchDataForAllYearsAsync(string username)
         {
             var defaultContributions = await FetchDefaultContributionsAsync(username);
@@ -51,6 +63,9 @@ namespace Contributions.Services
             };
         }
 
+        /// <summary>
+        /// プロフィールページから利用可能な年一覧を取得する。
+        /// </summary>
         public async Task<List<YearRange>> FetchYearsAsync(string username)
         {
             using var httpClient = new HttpClient();
@@ -83,6 +98,9 @@ namespace Contributions.Services
             return years;
         }
 
+        /// <summary>
+        /// 指定年の期間から日別コントリビューションを取得する。
+        /// </summary>
         private async Task<(string Year, int Total, DateRange? Range, List<Contribution> Contributions)> FetchDataForYearAsync(
             string username,
             string from,
@@ -127,6 +145,9 @@ namespace Contributions.Services
             return (year, contributions.Count, range, contributions);
         }
 
+        /// <summary>
+        /// 既定表示用（最新年相当）のコントリビューションを取得する。
+        /// </summary>
         public async Task<List<Contribution>> FetchDefaultContributionsAsync(string username)
         {
             using var httpClient = new HttpClient();
@@ -163,6 +184,9 @@ namespace Contributions.Services
             return contributions;
         }
 
+        /// <summary>
+        /// 指定期間のコントリビューション日ノードを取得する。
+        /// </summary>
         private static async Task<HtmlNodeCollection?> FetchContributionDaysAsync(
             string username,
             string from,
@@ -187,6 +211,9 @@ namespace Contributions.Services
             return calendarTable?.SelectNodes(".//td[contains(@class, 'ContributionCalendar-day')]");
         }
 
+        /// <summary>
+        /// 指定属性を自身または子要素から取得する。
+        /// </summary>
         private static string GetAttributeFromSelfOrDescendant(HtmlNode node, string attributeName)
         {
             var direct = node.GetAttributeValue(attributeName, "");
@@ -197,6 +224,9 @@ namespace Contributions.Services
             return child?.GetAttributeValue(attributeName, "") ?? string.Empty;
         }
 
+        /// <summary>
+        /// 年表記を正規化して4桁の年を抽出する。
+        /// </summary>
         private static string NormalizeYearText(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -209,6 +239,9 @@ namespace Contributions.Services
             return input.Trim();
         }
 
+        /// <summary>
+        /// クエリ文字列から指定キーの値を抽出する。
+        /// </summary>
         private static string? ExtractQueryValue(string url, string key)
         {
             if (string.IsNullOrWhiteSpace(url))
@@ -232,6 +265,9 @@ namespace Contributions.Services
             return null;
         }
 
+        /// <summary>
+        /// 指定年のデータを取得してYearDataに変換する。
+        /// </summary>
         public async Task<YearData> FetchYearDataAsync(string username, YearRange range)
         {
             var yearData = await FetchDataForYearAsync(username, range.From, range.To, range.Year);

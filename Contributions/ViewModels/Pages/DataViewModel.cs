@@ -6,6 +6,9 @@ using Wpf.Ui.Appearance;
 
 namespace Contributions.ViewModels.Pages
 {
+    /// <summary>
+    /// データ画面の状態と取得処理を管理するViewModel。
+    /// </summary>
     public partial class DataViewModel : ObservableObject, INavigationAware
     {
         private readonly GitHubService _gitHubService;
@@ -40,6 +43,9 @@ namespace Contributions.ViewModels.Pages
             "All", "すべて", "Alle", "Todos", "Tous", "सभी", "전체", "全部"
         ];
 
+        /// <summary>
+        /// DataViewModelを生成する。
+        /// </summary>
         public DataViewModel(
             GitHubService gitHubService,
             SettingsService settingsService,
@@ -104,6 +110,9 @@ namespace Contributions.ViewModels.Pages
 
         public bool HasResult => ContributionData != null && ContributionData.Contributions.Count > 0;
 
+        /// <summary>
+        /// ナビゲーション時に初期化を行う。
+        /// </summary>
         public async Task OnNavigatedToAsync()
         {
             if (!_isInitialized)
@@ -112,8 +121,14 @@ namespace Contributions.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// ナビゲーション離脱時の処理。
+        /// </summary>
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
+        /// <summary>
+        /// 保存済み設定を読み込み、初期状態を構成する。
+        /// </summary>
         private async Task InitializeViewModelAsync()
         {
             var currentTheme = ApplicationThemeManager.GetAppTheme();
@@ -147,16 +162,25 @@ namespace Contributions.ViewModels.Pages
             _isInitialized = true;
         }
 
+        /// <summary>
+        /// URL変更時に実行可否を更新する。
+        /// </summary>
         partial void OnUrlChanged(string value)
         {
             OnPropertyChanged(nameof(CanGenerate));
         }
 
+        /// <summary>
+        /// 読み込み状態の変化を反映する。
+        /// </summary>
         partial void OnIsLoadingChanged(bool value)
         {
             OnPropertyChanged(nameof(CanGenerate));
         }
 
+        /// <summary>
+        /// 取得データが変わったときに年一覧と共有状態を更新する。
+        /// </summary>
         partial void OnContributionDataChanged(ContributionData? value)
         {
             OnPropertyChanged(nameof(HasResult));
@@ -166,6 +190,9 @@ namespace Contributions.ViewModels.Pages
             _preferredYearValue = null;
         }
 
+        /// <summary>
+        /// 年の選択変更を保存し、必要なら追加取得する。
+        /// </summary>
         partial void OnSelectedYearChanged(string value)
         {
             CanShareToX = HasResult;
@@ -181,6 +208,9 @@ namespace Contributions.ViewModels.Pages
             _ = LoadYearDataIfNeededAsync();
         }
 
+        /// <summary>
+        /// テーマ変更をアプリ全体に適用する。
+        /// </summary>
         partial void OnThemeModeChanged(string value)
         {
             if (value == "Light")
@@ -189,6 +219,9 @@ namespace Contributions.ViewModels.Pages
                 ApplicationThemeManager.Apply(ApplicationTheme.Dark);
         }
 
+        /// <summary>
+        /// 自動コピーの文言を更新する。
+        /// </summary>
         partial void OnAutoCopyToClipboardChanged(bool value)
         {
             CopyButtonText = value ? "Copy again" : "Copy to Clipboard";
@@ -200,6 +233,9 @@ namespace Contributions.ViewModels.Pages
             await GenerateCoreAsync(isManual: true);
         }
 
+        /// <summary>
+        /// 取得処理の入口。手動実行時の選択状態を保持する。
+        /// </summary>
         private async Task GenerateCoreAsync(bool isManual)
         {
             if (isManual)
@@ -211,6 +247,9 @@ namespace Contributions.ViewModels.Pages
             await LoadDataAsync(isManual, forceRefresh: isManual);
         }
 
+        /// <summary>
+        /// 年一覧と必要な年のデータを読み込み、表示用データを構築する。
+        /// </summary>
         private async Task LoadDataAsync(bool isManual, bool forceRefresh)
         {
             ErrorMessage = null;
@@ -260,6 +299,9 @@ namespace Contributions.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// 現在選択中の年が未取得なら追加で読み込む。
+        /// </summary>
         private async Task LoadYearDataIfNeededAsync()
         {
             if (_isLoadingYearData)
@@ -291,6 +333,9 @@ namespace Contributions.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// 追加取得が必要かどうかを判定する。
+        /// </summary>
         private bool NeedsYearDataLoad(YearOptionKind? kind, string? year)
         {
             if (kind == null)
@@ -313,6 +358,9 @@ namespace Contributions.ViewModels.Pages
             return false;
         }
 
+        /// <summary>
+        /// 既定表示用のデータをキャッシュ優先で取得する。
+        /// </summary>
         private async Task EnsureDefaultContributionsAsync(string username, bool forceRefresh)
         {
             if (!forceRefresh)
@@ -330,6 +378,9 @@ namespace Contributions.ViewModels.Pages
             await _cacheService.SaveDefaultContributionsAsync(username, fetched);
         }
 
+        /// <summary>
+        /// 指定年または全年のデータをキャッシュ優先で取得する。
+        /// </summary>
         private async Task EnsureYearDataLoadedAsync(YearOptionKind? kind, string? year, bool forceRefresh)
         {
             if (kind == null || string.IsNullOrWhiteSpace(_currentUsername))
@@ -384,6 +435,9 @@ namespace Contributions.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// 現在取得済みのデータから表示用の集約を生成する。
+        /// </summary>
         private void UpdateContributionData()
         {
             var yearData = _yearDataByYear.Values
@@ -407,6 +461,9 @@ namespace Contributions.ViewModels.Pages
             };
         }
 
+        /// <summary>
+        /// 入力文字列からユーザー名を解決する。
+        /// </summary>
         private static bool TryResolveUsername(
             string input,
             out string username,
@@ -457,6 +514,9 @@ namespace Contributions.ViewModels.Pages
             return true;
         }
 
+        /// <summary>
+        /// 現在の設定内容を保存用のスナップショットにまとめる。
+        /// </summary>
         public UserSettings CreateSettingsSnapshot()
         {
             return new UserSettings
@@ -472,6 +532,9 @@ namespace Contributions.ViewModels.Pages
             };
         }
 
+        /// <summary>
+        /// 現在のテーマに応じた配色を取得する。
+        /// </summary>
         public (string Background, string Text, string SubText) GetThemeColors()
         {
             return ThemeMode == "Dark"
@@ -479,12 +542,18 @@ namespace Contributions.ViewModels.Pages
                 : ("#ffffff", "#24292f", "#57606a");
         }
 
+        /// <summary>
+        /// 現在のパレットの配色一覧を取得する。
+        /// </summary>
         public string[] GetPaletteColors()
         {
             var palette = Palettes.FirstOrDefault(p => p.Name == PaletteName) ?? Palettes[0];
             return palette.Grades;
         }
 
+        /// <summary>
+        /// 年データを表示順に並べて返す。
+        /// </summary>
         public List<YearData> GetOrderedYears()
         {
             if (ContributionData == null || ContributionData.Years.Count == 0)
@@ -493,6 +562,9 @@ namespace Contributions.ViewModels.Pages
             return ContributionData.Years;
         }
 
+        /// <summary>
+        /// 年の選択肢と選択状態を更新する。
+        /// </summary>
         private void UpdateYearOptions(
             ContributionData? data,
             List<GitHubService.YearRange>? yearRanges,
@@ -533,11 +605,17 @@ namespace Contributions.ViewModels.Pages
             SelectedYear = DefaultYearOption;
         }
 
+        /// <summary>
+        /// 年の選択肢を再構築する。
+        /// </summary>
         public void RefreshYearOptions(YearOptionKind? preferredKind, string? preferredYear)
         {
             UpdateYearOptions(ContributionData, _availableYearRanges, preferredKind, preferredYear);
         }
 
+        /// <summary>
+        /// 設定から復元した年の選択肢を初期適用する。
+        /// </summary>
         private void ApplySavedYearSelection()
         {
             var options = new List<string> { DefaultYearOption, AllYearsOption };
@@ -561,6 +639,9 @@ namespace Contributions.ViewModels.Pages
                 SelectedYear = DefaultYearOption;
         }
 
+        /// <summary>
+        /// 現在の年選択を識別する。
+        /// </summary>
         public (YearOptionKind? Kind, string? Year) GetCurrentYearSelection()
         {
             if (SelectedYear == DefaultYearOption)
@@ -572,6 +653,9 @@ namespace Contributions.ViewModels.Pages
             return (YearOptionKind.Year, SelectedYear);
         }
 
+        /// <summary>
+        /// 保存済み設定から優先する年の選択を取得する。
+        /// </summary>
         private static (YearOptionKind? Kind, string? Year) GetPreferredYearSelection(UserSettings settings)
         {
             if (!string.IsNullOrWhiteSpace(settings.SelectedYearKind))
@@ -600,6 +684,9 @@ namespace Contributions.ViewModels.Pages
             return (YearOptionKind.Year, settings.SelectedYear);
         }
 
+        /// <summary>
+        /// パレット表示用の情報。
+        /// </summary>
         public record PaletteItem(string Name, string[] Grades, string[] DisplayGrades);
 
         private record PaletteDefinition(string Name, string[] Grades);

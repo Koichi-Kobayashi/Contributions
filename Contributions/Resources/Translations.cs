@@ -5,12 +5,18 @@ using System.Xml.Linq;
 
 namespace Contributions.Resources
 {
+    /// <summary>
+    /// 埋め込み翻訳リソースを取得するユーティリティ。
+    /// </summary>
     public static partial class Translations
     {
         private static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string>> Cache = new();
         private static readonly Assembly Assembly = typeof(Translations).Assembly;
         private static readonly string[] FallbackCultures = ["en-US"];
 
+        /// <summary>
+        /// 指定のカルチャを適用して翻訳を更新する。
+        /// </summary>
         public static void ApplyCulture(string? cultureName)
         {
             CultureInfo culture;
@@ -30,6 +36,9 @@ namespace Contributions.Resources
             TranslationSource.Instance.RaiseLanguageChanged();
         }
 
+        /// <summary>
+        /// 指定キーの翻訳文字列を取得する。
+        /// </summary>
         public static string GetString(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
@@ -39,11 +48,17 @@ namespace Contributions.Resources
             return string.IsNullOrWhiteSpace(value) ? key : value;
         }
 
+        /// <summary>
+        /// 翻訳文字列を指定引数でフォーマットする。
+        /// </summary>
         public static string Format(string key, params object[] args)
         {
             return string.Format(CultureInfo.CurrentUICulture, GetString(key), args);
         }
 
+        /// <summary>
+        /// カルチャ階層とフォールバックを辿って翻訳値を取得する。
+        /// </summary>
         private static string? GetValueForCulture(string key, CultureInfo culture)
         {
             var current = culture;
@@ -70,6 +85,9 @@ namespace Contributions.Resources
             return null;
         }
 
+        /// <summary>
+        /// 指定カルチャのリソースから翻訳値を取得する。
+        /// </summary>
         private static string? GetFromResource(string cultureName, string key)
         {
             var resourceName = GetResourceName(cultureName);
@@ -77,6 +95,9 @@ namespace Contributions.Resources
             return map.TryGetValue(key, out var value) ? value : null;
         }
 
+        /// <summary>
+        /// カルチャ名から埋め込みリソース名を生成する。
+        /// </summary>
         private static string GetResourceName(string cultureName)
         {
             if (string.IsNullOrWhiteSpace(cultureName))
@@ -86,6 +107,9 @@ namespace Contributions.Resources
             return $"Contributions.Strings.{normalized}.Resources.resw";
         }
 
+        /// <summary>
+        /// 埋め込みリソースを読み込み、翻訳マップを生成する。
+        /// </summary>
         private static IReadOnlyDictionary<string, string> LoadResource(string resourceName)
         {
             using var stream = Assembly.GetManifestResourceStream(resourceName);

@@ -1,5 +1,8 @@
 namespace Contributions.Models
 {
+    /// <summary>
+    /// アプリの永続化設定。
+    /// </summary>
     public class UserSettings
     {
         public string Url { get; set; } = string.Empty;

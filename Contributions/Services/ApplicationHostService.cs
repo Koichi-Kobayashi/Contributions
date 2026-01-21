@@ -16,6 +16,9 @@ namespace Contributions.Services
 
         private INavigationWindow _navigationWindow;
 
+        /// <summary>
+        /// ApplicationHostServiceを生成する。
+        /// </summary>
         public ApplicationHostService(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;

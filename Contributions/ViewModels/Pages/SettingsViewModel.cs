@@ -5,6 +5,9 @@ using Wpf.Ui.Appearance;
 
 namespace Contributions.ViewModels.Pages
 {
+    /// <summary>
+    /// 設定画面の状態と操作を管理するViewModel。
+    /// </summary>
     public partial class SettingsViewModel : ObservableObject, INavigationAware
     {
         private bool _isInitialized = false;
@@ -12,6 +15,9 @@ namespace Contributions.ViewModels.Pages
         private readonly DataViewModel _dataViewModel;
         private bool _isLanguageInitializing;
 
+        /// <summary>
+        /// SettingsViewModelを生成する。
+        /// </summary>
         public SettingsViewModel(SettingsService settingsService, DataViewModel dataViewModel)
         {
             _settingsService = settingsService;
@@ -43,6 +49,9 @@ namespace Contributions.ViewModels.Pages
         [ObservableProperty]
         private LanguageItem _selectedLanguage = new(string.Empty, "System (default)");
 
+        /// <summary>
+        /// ナビゲーション時に初期化を行う。
+        /// </summary>
         public async Task OnNavigatedToAsync()
         {
             if (!_isInitialized)
@@ -51,8 +60,14 @@ namespace Contributions.ViewModels.Pages
             return;
         }
 
+        /// <summary>
+        /// ナビゲーション離脱時の処理。
+        /// </summary>
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
+        /// <summary>
+        /// 設定画面の初期状態を読み込む。
+        /// </summary>
         private async Task InitializeViewModelAsync()
         {
             CurrentTheme = ApplicationThemeManager.GetAppTheme();
@@ -72,12 +87,18 @@ namespace Contributions.ViewModels.Pages
             _isInitialized = true;
         }
 
+        /// <summary>
+        /// 実行中アセンブリのバージョン文字列を取得する。
+        /// </summary>
         private string GetAssemblyVersion()
         {
             return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString()
                 ?? String.Empty;
         }
 
+        /// <summary>
+        /// テーマを切り替える。
+        /// </summary>
         [RelayCommand]
         private void OnChangeTheme(string parameter)
         {
@@ -103,12 +124,18 @@ namespace Contributions.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// 自動コピー設定の変更を反映する。
+        /// </summary>
         partial void OnAutoCopyToClipboardChanged(bool value)
         {
             _dataViewModel.AutoCopyToClipboard = value;
             _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
         }
 
+        /// <summary>
+        /// 言語変更を反映し、年の表示ラベルも更新する。
+        /// </summary>
         partial void OnSelectedLanguageChanged(LanguageItem value)
         {
             if (_isLanguageInitializing)
@@ -122,6 +149,9 @@ namespace Contributions.ViewModels.Pages
             _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
         }
 
+        /// <summary>
+        /// 言語選択肢の表示情報。
+        /// </summary>
         public record LanguageItem(string Code, string DisplayName);
     }
 }

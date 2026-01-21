@@ -4,6 +4,9 @@ using Contributions.Models;
 
 namespace Contributions.Services
 {
+    /// <summary>
+    /// コントリビューションの取得結果をローカルにキャッシュするサービス。
+    /// </summary>
     public class ContributionCacheService
     {
         private const int CacheVersion = 1;
@@ -15,48 +18,72 @@ namespace Contributions.Services
                 "Contributions",
                 CacheDirectoryName);
 
+        /// <summary>
+        /// 既定表示用のコントリビューションをキャッシュから読み込む。
+        /// </summary>
         public async Task<List<Contribution>?> LoadDefaultContributionsAsync(string username)
         {
             var path = GetDefaultPath(username);
             return await LoadAsync<List<Contribution>>(path);
         }
 
+        /// <summary>
+        /// 既定表示用のコントリビューションをキャッシュに保存する。
+        /// </summary>
         public async Task SaveDefaultContributionsAsync(string username, List<Contribution> contributions)
         {
             var path = GetDefaultPath(username);
             await SaveAsync(path, contributions);
         }
 
+        /// <summary>
+        /// 指定年のデータをキャッシュから読み込む。
+        /// </summary>
         public async Task<YearData?> LoadYearDataAsync(string username, string year)
         {
             var path = GetYearPath(username, year);
             return await LoadAsync<YearData>(path);
         }
 
+        /// <summary>
+        /// 指定年のデータをキャッシュに保存する。
+        /// </summary>
         public async Task SaveYearDataAsync(string username, YearData data)
         {
             var path = GetYearPath(username, data.Year);
             await SaveAsync(path, data);
         }
 
+        /// <summary>
+        /// 既定表示のキャッシュファイルパスを返す。
+        /// </summary>
         private static string GetDefaultPath(string username)
         {
             var userDirectory = GetUserDirectory(username);
             return Path.Combine(userDirectory, "default.json");
         }
 
+        /// <summary>
+        /// 指定年のキャッシュファイルパスを返す。
+        /// </summary>
         private static string GetYearPath(string username, string year)
         {
             var userDirectory = GetUserDirectory(username);
             return Path.Combine(userDirectory, $"year-{year}.json");
         }
 
+        /// <summary>
+        /// ユーザー別キャッシュディレクトリを返す。
+        /// </summary>
         private static string GetUserDirectory(string username)
         {
             var safe = Sanitize(username);
             return Path.Combine(CacheDirectory, safe);
         }
 
+        /// <summary>
+        /// ファイル名に使える安全な文字列へ変換する。
+        /// </summary>
         private static string Sanitize(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -73,6 +100,9 @@ namespace Contributions.Services
             return new string(sanitized).Trim();
         }
 
+        /// <summary>
+        /// キャッシュファイルを読み込む。
+        /// </summary>
         private static async Task<T?> LoadAsync<T>(string path)
         {
             if (!File.Exists(path))
@@ -92,6 +122,9 @@ namespace Contributions.Services
             }
         }
 
+        /// <summary>
+        /// キャッシュファイルへ保存する。
+        /// </summary>
         private static async Task SaveAsync<T>(string path, T data)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);

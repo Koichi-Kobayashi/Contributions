@@ -1,5 +1,8 @@
 namespace Contributions.Models
 {
+    /// <summary>
+    /// 取得したコントリビューション情報をまとめたデータ。
+    /// </summary>
     public class ContributionData
     {
         public List<YearData> Years { get; set; } = new();
@@ -7,6 +10,9 @@ namespace Contributions.Models
         public List<Contribution> DefaultContributions { get; set; } = new();
     }
 
+    /// <summary>
+    /// 年単位のコントリビューション情報。
+    /// </summary>
     public class YearData
     {
         public string Year { get; set; } = string.Empty;
@@ -15,12 +21,18 @@ namespace Contributions.Models
         public List<Contribution> Contributions { get; set; } = new();
     }
 
+    /// <summary>
+    /// 日付範囲を表す。
+    /// </summary>
     public class DateRange
     {
         public string Start { get; set; } = string.Empty;
         public string End { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// 1日分のコントリビューション情報。
+    /// </summary>
     public class Contribution
     {
         public string Date { get; set; } = string.Empty;
