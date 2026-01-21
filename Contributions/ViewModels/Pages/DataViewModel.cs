@@ -10,8 +10,14 @@ namespace Contributions.ViewModels.Pages
     {
         private readonly GitHubService _gitHubService;
         private readonly SettingsService _settingsService;
+        private readonly ContributionCacheService _cacheService;
         private bool _isInitialized = false;
         private bool _isLoadingSettings = false;
+        private bool _isLoadingYearData = false;
+        private string? _currentUsername;
+        private List<GitHubService.YearRange> _availableYearRanges = [];
+        private readonly Dictionary<string, YearData> _yearDataByYear = new();
+        private List<Contribution> _defaultContributions = [];
         private YearOptionKind? _preferredYearKind;
         private string? _preferredYearValue;
         public static string DefaultYearOption => Translations.GetString("YearOption_Default");
@@ -34,10 +40,14 @@ namespace Contributions.ViewModels.Pages
             "All", "すべて", "Alle", "Todos", "Tous", "सभी", "전체", "全部"
         ];
 
-        public DataViewModel(GitHubService gitHubService, SettingsService settingsService)
+        public DataViewModel(
+            GitHubService gitHubService,
+            SettingsService settingsService,
+            ContributionCacheService cacheService)
         {
             _gitHubService = gitHubService;
             _settingsService = settingsService;
+            _cacheService = cacheService;
         }
 
         [ObservableProperty]
@@ -132,7 +142,7 @@ namespace Contributions.ViewModels.Pages
             }
 
             if (!string.IsNullOrWhiteSpace(Url))
-                await GenerateCoreAsync(isManual: false);
+                await LoadDataAsync(isManual: false, forceRefresh: false);
 
             _isInitialized = true;
         }
@@ -151,7 +161,7 @@ namespace Contributions.ViewModels.Pages
         {
             OnPropertyChanged(nameof(HasResult));
             CanShareToX = HasResult;
-            UpdateYearOptions(value, _preferredYearKind, _preferredYearValue);
+            UpdateYearOptions(value, _availableYearRanges, _preferredYearKind, _preferredYearValue);
             _preferredYearKind = null;
             _preferredYearValue = null;
         }
@@ -160,10 +170,15 @@ namespace Contributions.ViewModels.Pages
         {
             CanShareToX = HasResult;
 
-            if (_isLoadingSettings || IsLoading || ContributionData == null)
+            if (_isLoadingSettings || IsLoading)
                 return;
 
             _ = _settingsService.SaveAsync(CreateSettingsSnapshot());
+
+            if (string.IsNullOrWhiteSpace(_currentUsername) || _availableYearRanges.Count == 0)
+                return;
+
+            _ = LoadYearDataIfNeededAsync();
         }
 
         partial void OnThemeModeChanged(string value)
@@ -187,70 +202,50 @@ namespace Contributions.ViewModels.Pages
 
         private async Task GenerateCoreAsync(bool isManual)
         {
-            ErrorMessage = null;
             if (isManual)
             {
                 _preferredYearKind = GetCurrentYearSelection().Kind;
                 _preferredYearValue = GetCurrentYearSelection().Year;
             }
+
+            await LoadDataAsync(isManual, forceRefresh: isManual);
+        }
+
+        private async Task LoadDataAsync(bool isManual, bool forceRefresh)
+        {
+            ErrorMessage = null;
             ContributionData = null;
+            _yearDataByYear.Clear();
+            _availableYearRanges = [];
+            _defaultContributions = [];
 
             var input = Url?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(input))
+            if (!TryResolveUsername(input, out var username, out var errorMessage))
             {
-                ErrorMessage = "有効なGitHubのURLまたはユーザー名を入力してください";
+                ErrorMessage = errorMessage;
                 return;
             }
 
-            string username;
-            if (Uri.TryCreate(input, UriKind.Absolute, out var uri))
-            {
-                if (!string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
-                    || !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
-                {
-                    ErrorMessage = "URLは https://github.com/ で始まるGitHubのURLを入力してください";
-                    return;
-                }
-
-                var path = uri.AbsolutePath.Trim('/');
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    ErrorMessage = "URLにユーザー名を含めてください";
-                    return;
-                }
-
-                username = path.Split('/')[0];
-            }
-            else if (input.StartsWith("github.com/", StringComparison.OrdinalIgnoreCase))
-            {
-                ErrorMessage = "URLは https://github.com/ で始まるGitHubのURLを入力してください";
-                return;
-            }
-            else
-            {
-                username = GitHubService.CleanUsername(input);
-                if (string.IsNullOrWhiteSpace(username))
-                {
-                    ErrorMessage = "有効なGitHubのURLまたはユーザー名を入力してください";
-                    return;
-                }
-            }
-
+            _currentUsername = username;
             if (isManual)
                 IsManualGenerateRequested = true;
 
             IsLoading = true;
-
             try
             {
-                var data = await _gitHubService.FetchDataForAllYearsAsync(username);
-                if (data.Years.Count == 0)
+                _availableYearRanges = await _gitHubService.FetchYearsAsync(username);
+                RefreshYearOptions(GetCurrentYearSelection().Kind, GetCurrentYearSelection().Year);
+
+                await EnsureDefaultContributionsAsync(username, forceRefresh);
+                UpdateContributionData();
+
+                var selection = GetCurrentYearSelection();
+                await EnsureYearDataLoadedAsync(selection.Kind, selection.Year, forceRefresh);
+                UpdateContributionData();
+
+                if (_availableYearRanges.Count == 0)
                 {
                     ErrorMessage = "プロフィールが見つかりませんでした";
-                }
-                else
-                {
-                    ContributionData = data;
                 }
             }
             catch (Exception ex)
@@ -263,6 +258,203 @@ namespace Contributions.ViewModels.Pages
                 if (isManual)
                     IsManualGenerateRequested = false;
             }
+        }
+
+        private async Task LoadYearDataIfNeededAsync()
+        {
+            if (_isLoadingYearData)
+                return;
+
+            var selection = GetCurrentYearSelection();
+            if (selection.Kind == null)
+                return;
+
+            if (!NeedsYearDataLoad(selection.Kind, selection.Year))
+                return;
+
+            _isLoadingYearData = true;
+            IsLoading = true;
+
+            try
+            {
+                await EnsureYearDataLoadedAsync(selection.Kind, selection.Year, forceRefresh: false);
+                UpdateContributionData();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"プロフィールの取得に失敗しました: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
+                _isLoadingYearData = false;
+            }
+        }
+
+        private bool NeedsYearDataLoad(YearOptionKind? kind, string? year)
+        {
+            if (kind == null)
+                return false;
+
+            if (kind == YearOptionKind.Default)
+                return false;
+
+            if (kind == YearOptionKind.All)
+                return _availableYearRanges.Any(range => !_yearDataByYear.ContainsKey(range.Year));
+
+            if (kind == YearOptionKind.Year)
+            {
+                if (string.IsNullOrWhiteSpace(year))
+                    return false;
+
+                return !_yearDataByYear.ContainsKey(year);
+            }
+
+            return false;
+        }
+
+        private async Task EnsureDefaultContributionsAsync(string username, bool forceRefresh)
+        {
+            if (!forceRefresh)
+            {
+                var cached = await _cacheService.LoadDefaultContributionsAsync(username);
+                if (cached != null)
+                {
+                    _defaultContributions = cached;
+                    return;
+                }
+            }
+
+            var fetched = await _gitHubService.FetchDefaultContributionsAsync(username);
+            _defaultContributions = fetched;
+            await _cacheService.SaveDefaultContributionsAsync(username, fetched);
+        }
+
+        private async Task EnsureYearDataLoadedAsync(YearOptionKind? kind, string? year, bool forceRefresh)
+        {
+            if (kind == null || string.IsNullOrWhiteSpace(_currentUsername))
+                return;
+
+            if (kind == YearOptionKind.Year)
+            {
+                if (string.IsNullOrWhiteSpace(year))
+                    return;
+
+                var range = _availableYearRanges.FirstOrDefault(r => r.Year == year);
+                if (range == null)
+                    return;
+
+                if (!forceRefresh)
+                {
+                    var cached = await _cacheService.LoadYearDataAsync(_currentUsername, year);
+                    if (cached != null)
+                    {
+                        _yearDataByYear[year] = cached;
+                        return;
+                    }
+                }
+
+                var fetched = await _gitHubService.FetchYearDataAsync(_currentUsername, range);
+                _yearDataByYear[year] = fetched;
+                await _cacheService.SaveYearDataAsync(_currentUsername, fetched);
+                return;
+            }
+
+            if (kind == YearOptionKind.All)
+            {
+                foreach (var range in _availableYearRanges)
+                {
+                    if (!forceRefresh && _yearDataByYear.ContainsKey(range.Year))
+                        continue;
+
+                    if (!forceRefresh)
+                    {
+                        var cached = await _cacheService.LoadYearDataAsync(_currentUsername, range.Year);
+                        if (cached != null)
+                        {
+                            _yearDataByYear[range.Year] = cached;
+                            continue;
+                        }
+                    }
+
+                    var fetched = await _gitHubService.FetchYearDataAsync(_currentUsername, range);
+                    _yearDataByYear[range.Year] = fetched;
+                    await _cacheService.SaveYearDataAsync(_currentUsername, fetched);
+                }
+            }
+        }
+
+        private void UpdateContributionData()
+        {
+            var yearData = _yearDataByYear.Values
+                .Where(y => y.Contributions.Count > 0)
+                .OrderByDescending(y => y.Year)
+                .ToList();
+
+            var contributions = yearData
+                .SelectMany(y => y.Contributions)
+                .OrderByDescending(c => c.Date)
+                .ToList();
+
+            if (contributions.Count == 0 && _defaultContributions.Count > 0)
+                contributions = _defaultContributions.OrderByDescending(c => c.Date).ToList();
+
+            ContributionData = new ContributionData
+            {
+                Years = yearData,
+                Contributions = contributions,
+                DefaultContributions = _defaultContributions
+            };
+        }
+
+        private static bool TryResolveUsername(
+            string input,
+            out string username,
+            out string? errorMessage)
+        {
+            username = string.Empty;
+            errorMessage = null;
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                errorMessage = "有効なGitHubのURLまたはユーザー名を入力してください";
+                return false;
+            }
+
+            if (Uri.TryCreate(input, UriKind.Absolute, out var uri))
+            {
+                if (!string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    errorMessage = "URLは https://github.com/ で始まるGitHubのURLを入力してください";
+                    return false;
+                }
+
+                var path = uri.AbsolutePath.Trim('/');
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    errorMessage = "URLにユーザー名を含めてください";
+                    return false;
+                }
+
+                username = path.Split('/')[0];
+                return true;
+            }
+
+            if (input.StartsWith("github.com/", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMessage = "URLは https://github.com/ で始まるGitHubのURLを入力してください";
+                return false;
+            }
+
+            username = GitHubService.CleanUsername(input);
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                errorMessage = "有効なGitHubのURLまたはユーザー名を入力してください";
+                return false;
+            }
+
+            return true;
         }
 
         public UserSettings CreateSettingsSnapshot()
@@ -303,12 +495,19 @@ namespace Contributions.ViewModels.Pages
 
         private void UpdateYearOptions(
             ContributionData? data,
+            List<GitHubService.YearRange>? yearRanges,
             YearOptionKind? preferredKind,
             string? preferredYear)
         {
             var options = new List<string> { DefaultYearOption, AllYearsOption };
-            if (data != null && data.Years.Count > 0)
+            if (yearRanges != null && yearRanges.Count > 0)
+            {
+                options.AddRange(yearRanges.Select(y => y.Year?.Trim()).Where(y => !string.IsNullOrWhiteSpace(y))!);
+            }
+            else if (data != null && data.Years.Count > 0)
+            {
                 options.AddRange(data.Years.Select(y => y.Year?.Trim()).Where(y => !string.IsNullOrWhiteSpace(y))!);
+            }
 
             AvailableYears = options;
             if (preferredKind == YearOptionKind.All)
@@ -336,7 +535,7 @@ namespace Contributions.ViewModels.Pages
 
         public void RefreshYearOptions(YearOptionKind? preferredKind, string? preferredYear)
         {
-            UpdateYearOptions(ContributionData, preferredKind, preferredYear);
+            UpdateYearOptions(ContributionData, _availableYearRanges, preferredKind, preferredYear);
         }
 
         private void ApplySavedYearSelection()

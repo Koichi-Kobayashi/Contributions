@@ -7,7 +7,7 @@ namespace Contributions.Services
 {
     public class GitHubService
     {
-        private record YearRange(string Year, string From, string To);
+        public record YearRange(string Year, string From, string To);
 
         public static string CleanUsername(string input)
         {
@@ -51,7 +51,7 @@ namespace Contributions.Services
             };
         }
 
-        private async Task<List<YearRange>> FetchYearsAsync(string username)
+        public async Task<List<YearRange>> FetchYearsAsync(string username)
         {
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
@@ -127,7 +127,7 @@ namespace Contributions.Services
             return (year, contributions.Count, range, contributions);
         }
 
-        private async Task<List<Contribution>> FetchDefaultContributionsAsync(string username)
+        public async Task<List<Contribution>> FetchDefaultContributionsAsync(string username)
         {
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
@@ -230,6 +230,18 @@ namespace Contributions.Services
             }
 
             return null;
+        }
+
+        public async Task<YearData> FetchYearDataAsync(string username, YearRange range)
+        {
+            var yearData = await FetchDataForYearAsync(username, range.From, range.To, range.Year);
+            return new YearData
+            {
+                Year = yearData.Year,
+                Total = yearData.Total,
+                Range = yearData.Range,
+                Contributions = yearData.Contributions
+            };
         }
 
     }

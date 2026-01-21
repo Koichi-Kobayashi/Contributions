@@ -51,6 +51,7 @@ namespace Contributions
 
                 services.AddSingleton<DataPage>();
                 services.AddSingleton<GitHubService>();
+                services.AddSingleton<ContributionCacheService>();
                 services.AddSingleton<DataViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
