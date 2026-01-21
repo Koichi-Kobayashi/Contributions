@@ -571,6 +571,7 @@ namespace Contributions.ViewModels.Pages
             YearOptionKind? preferredKind,
             string? preferredYear)
         {
+            var currentSelection = SelectedYear;
             var options = new List<string> { DefaultYearOption, AllYearsOption };
             if (yearRanges != null && yearRanges.Count > 0)
             {
@@ -582,6 +583,14 @@ namespace Contributions.ViewModels.Pages
             }
 
             AvailableYears = options;
+            if (preferredKind == null
+                && !string.IsNullOrWhiteSpace(currentSelection)
+                && options.Contains(currentSelection))
+            {
+                SelectedYear = currentSelection;
+                return;
+            }
+
             if (preferredKind == YearOptionKind.All)
             {
                 SelectedYear = AllYearsOption;
