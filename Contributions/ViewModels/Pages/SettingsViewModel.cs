@@ -14,6 +14,7 @@ namespace Contributions.ViewModels.Pages
         private readonly SettingsService _settingsService;
         private readonly DataViewModel _dataViewModel;
         private bool _isLanguageInitializing;
+        private bool _isShareSettingsInitializing;
 
         /// <summary>
         /// SettingsViewModelを生成する。
@@ -32,6 +33,25 @@ namespace Contributions.ViewModels.Pages
 
         [ObservableProperty]
         private bool _autoCopyToClipboard = true;
+
+        [ObservableProperty]
+        private string _shareText = DataViewModel.DefaultShareText;
+
+        [ObservableProperty]
+        private ShareUrlOptionItem _selectedShareUrlOption =
+            new(DataViewModel.ShareUrlOptionGitHub, "GitHub");
+
+        [ObservableProperty]
+        private string _shareHashtag1 = string.Empty;
+
+        [ObservableProperty]
+        private string _shareHashtag2 = string.Empty;
+
+        [ObservableProperty]
+        private string _shareHashtag3 = string.Empty;
+
+        [ObservableProperty]
+        private List<ShareUrlOptionItem> _shareUrlOptions = CreateShareUrlOptions();
 
         public List<LanguageItem> Languages { get; } =
         [
@@ -63,7 +83,10 @@ namespace Contributions.ViewModels.Pages
         /// <summary>
         /// ナビゲーション離脱時の処理。
         /// </summary>
-        public Task OnNavigatedFromAsync() => Task.CompletedTask;
+        public async Task OnNavigatedFromAsync()
+        {
+            await _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
+        }
 
         /// <summary>
         /// 設定画面の初期状態を読み込む。
@@ -83,6 +106,22 @@ namespace Contributions.ViewModels.Pages
             SelectedLanguage = Languages.FirstOrDefault(l => l.Code == settings.Language)
                 ?? Languages[0];
             _isLanguageInitializing = false;
+
+            _isShareSettingsInitializing = true;
+            ShareText = settings.ShareText ?? DataViewModel.DefaultShareText;
+            ShareUrlOptions = CreateShareUrlOptions();
+            SelectedShareUrlOption = ShareUrlOptions.FirstOrDefault(option =>
+                    option.Value == DataViewModel.ResolveShareUrlOption(settings))
+                ?? ShareUrlOptions[1];
+            ShareHashtag1 = DataViewModel.ResolveShareHashtag1(settings);
+            ShareHashtag2 = settings.ShareHashtag2 ?? string.Empty;
+            ShareHashtag3 = settings.ShareHashtag3 ?? string.Empty;
+            _isShareSettingsInitializing = false;
+            _dataViewModel.ShareText = ShareText;
+            _dataViewModel.ShareUrlOption = SelectedShareUrlOption.Value;
+            _dataViewModel.ShareHashtag1 = ShareHashtag1;
+            _dataViewModel.ShareHashtag2 = ShareHashtag2;
+            _dataViewModel.ShareHashtag3 = ShareHashtag3;
 
             _isInitialized = true;
         }
@@ -134,6 +173,66 @@ namespace Contributions.ViewModels.Pages
         }
 
         /// <summary>
+        /// 共有テキストの変更を反映する。
+        /// </summary>
+        partial void OnShareTextChanged(string value)
+        {
+            if (_isShareSettingsInitializing)
+                return;
+
+            _dataViewModel.ShareText = value;
+            _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// 共有URLの変更を反映する。
+        /// </summary>
+        partial void OnSelectedShareUrlOptionChanged(ShareUrlOptionItem value)
+        {
+            if (_isShareSettingsInitializing)
+                return;
+
+            _dataViewModel.ShareUrlOption = value.Value;
+            _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// ハッシュタグ1の変更を反映する。
+        /// </summary>
+        partial void OnShareHashtag1Changed(string value)
+        {
+            if (_isShareSettingsInitializing)
+                return;
+
+            _dataViewModel.ShareHashtag1 = value;
+            _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// ハッシュタグ2の変更を反映する。
+        /// </summary>
+        partial void OnShareHashtag2Changed(string value)
+        {
+            if (_isShareSettingsInitializing)
+                return;
+
+            _dataViewModel.ShareHashtag2 = value;
+            _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// ハッシュタグ3の変更を反映する。
+        /// </summary>
+        partial void OnShareHashtag3Changed(string value)
+        {
+            if (_isShareSettingsInitializing)
+                return;
+
+            _dataViewModel.ShareHashtag3 = value;
+            _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
+        }
+
+        /// <summary>
         /// 言語変更を反映し、年の表示ラベルも更新する。
         /// </summary>
         partial void OnSelectedLanguageChanged(LanguageItem value)
@@ -146,6 +245,7 @@ namespace Contributions.ViewModels.Pages
             Translations.ApplyCulture(value.Code);
             _dataViewModel.Language = value.Code;
             _dataViewModel.RefreshYearOptions(currentSelection.Kind, currentSelection.Year);
+            RefreshShareUrlOptions();
             _ = _settingsService.SaveAsync(_dataViewModel.CreateSettingsSnapshot());
         }
 
@@ -153,5 +253,34 @@ namespace Contributions.ViewModels.Pages
         /// 言語選択肢の表示情報。
         /// </summary>
         public record LanguageItem(string Code, string DisplayName);
+
+        /// <summary>
+        /// 共有URLの選択肢。
+        /// </summary>
+        public record ShareUrlOptionItem(string Value, string DisplayName);
+
+        private static List<ShareUrlOptionItem> CreateShareUrlOptions()
+        {
+            return
+            [
+                new ShareUrlOptionItem(
+                    DataViewModel.ShareUrlOptionNone,
+                    Translations.GetString("ShareUrlOption_None")),
+                new ShareUrlOptionItem(
+                    DataViewModel.ShareUrlOptionGitHub,
+                    Translations.GetString("ShareUrlOption_GitHub"))
+            ];
+        }
+
+        private void RefreshShareUrlOptions()
+        {
+            _isShareSettingsInitializing = true;
+            var selectedValue = SelectedShareUrlOption?.Value;
+            ShareUrlOptions = CreateShareUrlOptions();
+            SelectedShareUrlOption = ShareUrlOptions.FirstOrDefault(option =>
+                    option.Value == selectedValue)
+                ?? ShareUrlOptions[1];
+            _isShareSettingsInitializing = false;
+        }
     }
 }

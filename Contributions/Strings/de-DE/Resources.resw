@@ -70,4 +70,10 @@
   <data name="Settings_AutoCopyCheckbox" xml:space="preserve">
     <value>Bild beim Erstellen oder bei Jahreswechsel automatisch kopieren.</value>
   </data>
+  <data name="ShareUrlOption_None" xml:space="preserve">
+    <value>Keine</value>
+  </data>
+  <data name="ShareUrlOption_GitHub" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
 </root>

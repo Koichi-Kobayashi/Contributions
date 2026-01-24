@@ -5,6 +5,20 @@ namespace Contributions.Models
     /// </summary>
     public class UserSettings
     {
+        public string ShareText { get; set; } = "My GitHub contributions this year 🚀";
+
+        public string ShareUrlOption { get; set; } = string.Empty;
+
+        public string ShareUrl { get; set; } = string.Empty;
+
+        public string ShareHashtag1 { get; set; } = string.Empty;
+
+        public string ShareHashtag2 { get; set; } = string.Empty;
+
+        public string ShareHashtag3 { get; set; } = string.Empty;
+
+        public string ShareHashtags { get; set; } = string.Empty;
+
         public string Url { get; set; } = string.Empty;
 
         public string ThemeMode { get; set; } = "Dark";

@@ -25,6 +25,11 @@ namespace Contributions.ViewModels.Pages
         private string? _preferredYearValue;
         public static string DefaultYearOption => Translations.GetString("YearOption_Default");
         public static string AllYearsOption => Translations.GetString("YearOption_All");
+        public const string DefaultShareText = "My GitHub contributions this year 🚀";
+        public const string DefaultShareHashtag1 = "";
+        public const string DefaultShareUrlOption = "github";
+        public const string ShareUrlOptionNone = "none";
+        public const string ShareUrlOptionGitHub = "github";
 
         public enum YearOptionKind
         {
@@ -79,6 +84,21 @@ namespace Contributions.ViewModels.Pages
 
         [ObservableProperty]
         private string _copyButtonText = "Copy to Clipboard";
+
+        [ObservableProperty]
+        private string _shareText = DefaultShareText;
+
+        [ObservableProperty]
+        private string _shareUrlOption = DefaultShareUrlOption;
+
+        [ObservableProperty]
+        private string _shareHashtag1 = DefaultShareHashtag1;
+
+        [ObservableProperty]
+        private string _shareHashtag2 = string.Empty;
+
+        [ObservableProperty]
+        private string _shareHashtag3 = string.Empty;
 
         [ObservableProperty]
         private string _language = string.Empty;
@@ -147,6 +167,11 @@ namespace Contributions.ViewModels.Pages
                 Language = settings.Language;
                 (_preferredYearKind, _preferredYearValue) = GetPreferredYearSelection(settings);
                 AutoCopyToClipboard = settings.AutoCopyToClipboard;
+                ShareText = settings.ShareText ?? DefaultShareText;
+                ShareUrlOption = ResolveShareUrlOption(settings);
+                ShareHashtag1 = ResolveShareHashtag1(settings);
+                ShareHashtag2 = settings.ShareHashtag2 ?? string.Empty;
+                ShareHashtag3 = settings.ShareHashtag3 ?? string.Empty;
 
                 Translations.ApplyCulture(Language);
                 ApplySavedYearSelection();
@@ -225,6 +250,61 @@ namespace Contributions.ViewModels.Pages
         partial void OnAutoCopyToClipboardChanged(bool value)
         {
             CopyButtonText = value ? "Copy again" : "Copy to Clipboard";
+        }
+
+        /// <summary>
+        /// 共有テキストの変更を保存する。
+        /// </summary>
+        partial void OnShareTextChanged(string value)
+        {
+            if (_isLoadingSettings)
+                return;
+
+            _ = _settingsService.SaveAsync(CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// 共有URLの選択変更を保存する。
+        /// </summary>
+        partial void OnShareUrlOptionChanged(string value)
+        {
+            if (_isLoadingSettings)
+                return;
+
+            _ = _settingsService.SaveAsync(CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// ハッシュタグ1の変更を保存する。
+        /// </summary>
+        partial void OnShareHashtag1Changed(string value)
+        {
+            if (_isLoadingSettings)
+                return;
+
+            _ = _settingsService.SaveAsync(CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// ハッシュタグ2の変更を保存する。
+        /// </summary>
+        partial void OnShareHashtag2Changed(string value)
+        {
+            if (_isLoadingSettings)
+                return;
+
+            _ = _settingsService.SaveAsync(CreateSettingsSnapshot());
+        }
+
+        /// <summary>
+        /// ハッシュタグ3の変更を保存する。
+        /// </summary>
+        partial void OnShareHashtag3Changed(string value)
+        {
+            if (_isLoadingSettings)
+                return;
+
+            _ = _settingsService.SaveAsync(CreateSettingsSnapshot());
         }
 
         [RelayCommand]
@@ -525,11 +605,36 @@ namespace Contributions.ViewModels.Pages
                 ThemeMode = ThemeMode,
                 PaletteName = PaletteName,
                 AutoCopyToClipboard = AutoCopyToClipboard,
+                ShareText = ShareText,
+                ShareUrlOption = ShareUrlOption,
+                ShareHashtag1 = ShareHashtag1,
+                ShareHashtag2 = ShareHashtag2,
+                ShareHashtag3 = ShareHashtag3,
                 Language = Language,
                 SelectedYear = SelectedYear,
                 SelectedYearKind = GetCurrentYearSelection().Kind?.ToString().ToLowerInvariant() ?? string.Empty,
                 SelectedYearValue = GetCurrentYearSelection().Year ?? string.Empty
             };
+        }
+
+        public static string ResolveShareHashtag1(UserSettings settings)
+        {
+            if (!string.IsNullOrWhiteSpace(settings.ShareHashtag1))
+                return settings.ShareHashtag1;
+
+            if (!string.IsNullOrWhiteSpace(settings.ShareHashtags))
+                return settings.ShareHashtags;
+
+            return string.Empty;
+        }
+
+        public static string ResolveShareUrlOption(UserSettings settings)
+        {
+            var option = settings.ShareUrlOption?.Trim().ToLowerInvariant() ?? string.Empty;
+            if (option == ShareUrlOptionNone || option == ShareUrlOptionGitHub)
+                return option;
+
+            return DefaultShareUrlOption;
         }
 
         /// <summary>

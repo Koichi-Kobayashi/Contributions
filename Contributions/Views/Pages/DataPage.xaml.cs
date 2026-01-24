@@ -512,11 +512,46 @@ namespace Contributions.Views.Pages
         {
             var username = GitHubService.CleanUsername(ViewModel.Url);
             var profileUrl = string.IsNullOrWhiteSpace(username) ? null : $"https://github.com/{username}";
+            var shareText = ViewModel.ShareText?.TrimEnd() ?? string.Empty;
+
+            var shareUrl = ViewModel.ShareUrlOption == DataViewModel.ShareUrlOptionNone
+                ? null
+                : profileUrl;
+
+            if (!string.IsNullOrWhiteSpace(shareText) && !string.IsNullOrWhiteSpace(shareUrl))
+            {
+                shareText += "\n";
+            }
+
+            var hashtags = BuildHashtags(
+                ViewModel.ShareHashtag1,
+                ViewModel.ShareHashtag2,
+                ViewModel.ShareHashtag3);
 
             XShare.OpenTweetComposer(
-                text: "My GitHub contributions this year 🚀\n",
-                url: profileUrl,
-                hashtags: "GitHub");
+                text: shareText,
+                url: shareUrl,
+                hashtags: hashtags);
+        }
+
+        private static string? BuildHashtags(params string?[] values)
+        {
+            var tags = values
+                .Select(NormalizeHashtag)
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .ToList();
+
+            return tags.Count == 0 ? null : string.Join(",", tags);
+        }
+
+        private static string? NormalizeHashtag(string? value)
+        {
+            var trimmed = value?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+                return null;
+
+            trimmed = trimmed.TrimStart('#');
+            return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         }
 
         /// <summary>

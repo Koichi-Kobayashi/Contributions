@@ -70,4 +70,10 @@
   <data name="Settings_AutoCopyCheckbox" xml:space="preserve">
     <value>생성 시/연도 변경 시 이미지를 자동으로 복사합니다.</value>
   </data>
+  <data name="ShareUrlOption_None" xml:space="preserve">
+    <value>없음</value>
+  </data>
+  <data name="ShareUrlOption_GitHub" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
 </root>
