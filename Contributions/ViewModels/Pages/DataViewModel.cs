@@ -846,7 +846,7 @@ namespace Contributions.ViewModels.Pages
             if (maxDate.Value.Date > today.Date)
                 return true;
 
-            var rangeStart = today.Date.AddDays(-370);
+            var rangeStart = today.Date.AddDays(-365);
             if (minDate != null && minDate.Value.Date < rangeStart)
                 return true;
 

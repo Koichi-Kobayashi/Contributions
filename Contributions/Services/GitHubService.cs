@@ -156,7 +156,7 @@ namespace Contributions.Services
         public async Task<List<Contribution>> FetchDefaultContributionsAsync(string username)
         {
             var toDate = DateTime.Today;
-            var fromDate = DateTime.Today.AddDays(-370);
+            var fromDate = DateTime.Today.AddDays(-365);
 
             var contributions = new List<Contribution>();
             var seenDates = new HashSet<string>();

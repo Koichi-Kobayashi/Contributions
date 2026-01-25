@@ -239,6 +239,10 @@ namespace Contributions.Views.Pages
             var contributionDict = contributions
                 .GroupBy(c => c.Date)
                 .ToDictionary(g => g.Key, g => g.Last());
+            var minContributionDate = contributions
+                .Select(c => DateTime.ParseExact(c.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture))
+                .DefaultIfEmpty(DateTime.MinValue)
+                .Min();
 
             var (startDate, rangeEndDate, weeks) = GetChartRange(chart);
             var chartHeight = 7 * dayHeight;
@@ -302,6 +306,9 @@ namespace Contributions.Views.Pages
                 {
                     var date = weekStart.AddDays(day);
                     var dateStr = date.ToString("yyyy-MM-dd");
+
+                    if (chart.UseFullRange && date < minContributionDate)
+                        continue;
 
                     if (contributionDict.TryGetValue(dateStr, out var contribution))
                     {
