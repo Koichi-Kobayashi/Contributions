@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using Contributions.Models;
@@ -110,6 +111,8 @@ namespace Contributions.Services
             var days = await FetchContributionDaysAsync(username, from, to)
                 ?? await FetchContributionDaysAsync(username, from, to, useProfilePage: true);
             var contributions = new List<Contribution>();
+            var fromDate = DateTime.ParseExact(from, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var toDate = DateTime.ParseExact(to, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
             if (days != null)
             {
@@ -118,6 +121,8 @@ namespace Contributions.Services
                     var date = GetAttributeFromSelfOrDescendant(day, "data-date");
                     var levelStr = GetAttributeFromSelfOrDescendant(day, "data-level");
                     if (string.IsNullOrWhiteSpace(date))
+                        continue;
+                    if (!TryParseDate(date, out var parsedDate) || parsedDate < fromDate || parsedDate > toDate)
                         continue;
                     var intensity = int.TryParse(levelStr, out var l) ? l : 0;
 
@@ -150,25 +155,36 @@ namespace Contributions.Services
         /// </summary>
         public async Task<List<Contribution>> FetchDefaultContributionsAsync(string username)
         {
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
-
-            var response = await httpClient.GetStringAsync($"https://github.com/{username}?tab=contributions");
-            var doc = new HtmlDocument();
-            doc.LoadHtml(response);
-
-            var calendarTable = doc.DocumentNode.SelectSingleNode(
-                "//table[contains(@class, 'ContributionCalendar-grid') and contains(@class, 'js-calendar-graph-table')]");
-            var days = calendarTable?.SelectNodes(".//td[contains(@class, 'ContributionCalendar-day')]");
+            var toDate = DateTime.Today;
+            var fromDate = DateTime.Today.AddDays(-370);
 
             var contributions = new List<Contribution>();
-            if (days != null)
+            var seenDates = new HashSet<string>();
+            for (var year = fromDate.Year; year <= toDate.Year; year++)
             {
+                var rangeFrom = year == fromDate.Year
+                    ? fromDate
+                    : new DateTime(year, 1, 1);
+                var rangeTo = year == toDate.Year
+                    ? toDate
+                    : new DateTime(year, 12, 31);
+                var from = rangeFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var to = rangeTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var days = await FetchContributionDaysAsync(username, from, to)
+                    ?? await FetchContributionDaysAsync(username, from, to, useProfilePage: true);
+
+                if (days == null)
+                    continue;
+
                 foreach (var day in days)
                 {
                     var date = GetAttributeFromSelfOrDescendant(day, "data-date");
                     var levelStr = GetAttributeFromSelfOrDescendant(day, "data-level");
                     if (string.IsNullOrWhiteSpace(date))
+                        continue;
+                    if (!TryParseDate(date, out var parsedDate) || parsedDate < fromDate || parsedDate > toDate)
+                        continue;
+                    if (!seenDates.Add(date))
                         continue;
                     var intensity = int.TryParse(levelStr, out var l) ? l : 0;
 
@@ -237,6 +253,16 @@ namespace Contributions.Services
                 return match.Value;
 
             return input.Trim();
+        }
+
+        private static bool TryParseDate(string date, out DateTime parsed)
+        {
+            return DateTime.TryParseExact(
+                date,
+                "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out parsed);
         }
 
         /// <summary>

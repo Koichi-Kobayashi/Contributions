@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -185,14 +186,14 @@ namespace Contributions.Views.Pages
             if (selected == DataViewModel.AllYearsOption)
             {
                 return ViewModel.GetOrderedYears()
-                    .Select(y => new ChartData($"GitHub Contributions {y.Year}", y.Contributions, false))
+                    .Select(y => new ChartData($"GitHub Contributions {y.Year}", y.Contributions, true))
                     .Where(c => c.Contributions.Count > 0)
                     .ToList();
             }
 
             var target = data.Years.FirstOrDefault(y => y.Year == selected);
             if (target != null)
-                return [new ChartData($"GitHub Contributions {target.Year}", target.Contributions, false)];
+                return [new ChartData($"GitHub Contributions {target.Year}", target.Contributions, true)];
 
             return [new ChartData("GitHub Contributions", data.Contributions, false)];
         }
@@ -369,12 +370,17 @@ namespace Contributions.Views.Pages
         /// </summary>
         private static (DateTime StartDate, DateTime EndDate, int Weeks) GetChartRange(ChartData chart)
         {
-            var dates = chart.Contributions.Select(c => DateTime.Parse(c.Date)).OrderBy(d => d).ToList();
+            var dates = chart.Contributions
+                .Select(c => DateTime.ParseExact(c.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture))
+                .OrderBy(d => d)
+                .ToList();
             if (dates.Count == 0)
                 return (DateTime.Today, DateTime.Today, 1);
 
             var lastDate = dates.Last();
             var localToday = DateTime.Today;
+            if (lastDate.Date > localToday)
+                lastDate = localToday;
             var dayDelta = (localToday - lastDate.Date).Days;
             if (dayDelta == 1)
             {

@@ -11,7 +11,7 @@
     Title="DataPage"
     d:DataContext="{d:DesignInstance local:DataPage,
                                      IsDesignTimeCreatable=False}"
-    d:DesignHeight="450"
+    d:DesignHeight="600"
     d:DesignWidth="1320"
     ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
     ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
@@ -131,6 +131,13 @@
                     IsEnabled="{Binding ViewModel.HasResult}"
                     ItemsSource="{Binding ViewModel.AvailableYears}"
                     SelectedItem="{Binding ViewModel.SelectedYear}" />
+
+                <ui:Button
+                    Margin="0,6,0,12"
+                    Appearance="Secondary"
+                    Command="{Binding ViewModel.ClearCacheCommand}"
+                    Content="Clear cache"
+                    IsEnabled="{Binding ViewModel.CanGenerate}" />
             </StackPanel>
         </Border>
 

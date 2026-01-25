@@ -82,6 +82,25 @@ namespace Contributions.Services
         }
 
         /// <summary>
+        /// 指定ユーザーのキャッシュを削除する。
+        /// </summary>
+        public Task ClearUserCacheAsync(string username)
+        {
+            var userDirectory = GetUserDirectory(username);
+            try
+            {
+                if (Directory.Exists(userDirectory))
+                    Directory.Delete(userDirectory, recursive: true);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
         /// ファイル名に使える安全な文字列へ変換する。
         /// </summary>
         private static string Sanitize(string input)

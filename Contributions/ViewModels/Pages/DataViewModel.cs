@@ -1,3 +1,4 @@
+using System.Globalization;
 using Contributions.Models;
 using Contributions.Resources;
 using Contributions.Services;
@@ -313,6 +314,23 @@ namespace Contributions.ViewModels.Pages
             await GenerateCoreAsync(isManual: true);
         }
 
+        [RelayCommand]
+        private async Task ClearCacheAsync()
+        {
+            if (IsLoading)
+                return;
+
+            var input = Url?.Trim() ?? string.Empty;
+            if (!TryResolveUsername(input, out var username, out var errorMessage))
+            {
+                ErrorMessage = errorMessage;
+                return;
+            }
+
+            await _cacheService.ClearUserCacheAsync(username);
+            await GenerateCoreAsync(isManual: true);
+        }
+
         /// <summary>
         /// 取得処理の入口。手動実行時の選択状態を保持する。
         /// </summary>
@@ -446,7 +464,7 @@ namespace Contributions.ViewModels.Pages
             if (!forceRefresh)
             {
                 var cached = await _cacheService.LoadDefaultContributionsAsync(username);
-                if (cached != null)
+                if (cached != null && cached.Count > 0 && !IsContributionDataStale(cached, DateTime.Today))
                 {
                     _defaultContributions = cached;
                     return;
@@ -525,13 +543,22 @@ namespace Contributions.ViewModels.Pages
                 .OrderByDescending(y => y.Year)
                 .ToList();
 
-            var contributions = yearData
-                .SelectMany(y => y.Contributions)
-                .OrderByDescending(c => c.Date)
-                .ToList();
-
-            if (contributions.Count == 0 && _defaultContributions.Count > 0)
+            List<Contribution> contributions;
+            if (SelectedYear == DefaultYearOption && _defaultContributions.Count > 0)
+            {
                 contributions = _defaultContributions.OrderByDescending(c => c.Date).ToList();
+                yearData = [];
+            }
+            else
+            {
+                contributions = yearData
+                    .SelectMany(y => y.Contributions)
+                    .OrderByDescending(c => c.Date)
+                    .ToList();
+
+                if (contributions.Count == 0 && _defaultContributions.Count > 0)
+                    contributions = _defaultContributions.OrderByDescending(c => c.Date).ToList();
+            }
 
             ContributionData = new ContributionData
             {
@@ -796,6 +823,50 @@ namespace Contributions.ViewModels.Pages
                 return (YearOptionKind.All, null);
 
             return (YearOptionKind.Year, settings.SelectedYear);
+        }
+
+        private static bool IsContributionDataStale(IEnumerable<Contribution> contributions, DateTime today)
+        {
+            var (minDate, maxDate) = GetMinMaxDate(contributions);
+            if (maxDate == null)
+                return true;
+
+            if (maxDate.Value.Date > today.Date)
+                return true;
+
+            var rangeStart = today.Date.AddDays(-370);
+            if (minDate != null && minDate.Value.Date < rangeStart)
+                return true;
+
+            return false;
+        }
+
+        private static (DateTime? MinDate, DateTime? MaxDate) GetMinMaxDate(IEnumerable<Contribution> contributions)
+        {
+            DateTime? min = null;
+            DateTime? max = null;
+            foreach (var contribution in contributions)
+            {
+                if (!TryParseDate(contribution.Date, out var parsed))
+                    continue;
+
+                if (min == null || parsed < min.Value)
+                    min = parsed;
+                if (max == null || parsed > max.Value)
+                    max = parsed;
+            }
+
+            return (min, max);
+        }
+
+        private static bool TryParseDate(string date, out DateTime parsed)
+        {
+            return DateTime.TryParseExact(
+                date,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out parsed);
         }
 
         /// <summary>
