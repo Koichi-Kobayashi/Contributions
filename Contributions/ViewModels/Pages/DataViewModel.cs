@@ -131,6 +131,8 @@ namespace Contributions.ViewModels.Pages
 
         public bool HasResult => ContributionData != null && ContributionData.Contributions.Count > 0;
 
+        public bool CanShowChart => HasResult && !IsLoading;
+
         /// <summary>
         /// ナビゲーション時に初期化を行う。
         /// </summary>
@@ -202,6 +204,7 @@ namespace Contributions.ViewModels.Pages
         partial void OnIsLoadingChanged(bool value)
         {
             OnPropertyChanged(nameof(CanGenerate));
+            OnPropertyChanged(nameof(CanShowChart));
         }
 
         /// <summary>
@@ -210,6 +213,7 @@ namespace Contributions.ViewModels.Pages
         partial void OnContributionDataChanged(ContributionData? value)
         {
             OnPropertyChanged(nameof(HasResult));
+            OnPropertyChanged(nameof(CanShowChart));
             CanShareToX = HasResult;
             UpdateYearOptions(value, _availableYearRanges, _preferredYearKind, _preferredYearValue);
             _preferredYearKind = null;
@@ -538,6 +542,14 @@ namespace Contributions.ViewModels.Pages
         /// </summary>
         private void UpdateContributionData()
         {
+            var selection = GetCurrentYearSelection();
+            if (selection.Kind == YearOptionKind.Year
+                && !string.IsNullOrWhiteSpace(selection.Year)
+                && !_yearDataByYear.ContainsKey(selection.Year))
+            {
+                return;
+            }
+
             var yearData = _yearDataByYear.Values
                 .Where(y => y.Contributions.Count > 0)
                 .OrderByDescending(y => y.Year)

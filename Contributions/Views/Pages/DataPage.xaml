@@ -153,8 +153,24 @@
                     HorizontalAlignment="Center"
                     Appearance="Primary"
                     Click="CopyButton_Click"
-                    Content="{Binding ViewModel.CopyButtonText}"
-                    Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    Content="{Binding ViewModel.CopyButtonText}">
+                    <ui:Button.Style>
+                        <Style
+                            BasedOn="{StaticResource {x:Type ui:Button}}"
+                            TargetType="ui:Button">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Setter Property="IsEnabled" Value="True" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewModel.HasResult}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ViewModel.IsLoading}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ui:Button.Style>
+                </ui:Button>
 
                 <ui:Button
                     x:Name="ShareXButton"
@@ -163,15 +179,45 @@
                     Appearance="Secondary"
                     Click="ShareXButton_Click"
                     Content="Post to X"
-                    IsEnabled="{Binding ViewModel.CanShareToX}"
-                    Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    IsEnabled="{Binding ViewModel.CanShareToX}">
+                    <ui:Button.Style>
+                        <Style
+                            BasedOn="{StaticResource {x:Type ui:Button}}"
+                            TargetType="ui:Button">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewModel.HasResult}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ViewModel.IsLoading}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ui:Button.Style>
+                </ui:Button>
 
-                <skia:SKElement
-                    x:Name="ChartCanvas"
-                    Width="900"
-                    Height="320"
-                    PaintSurface="ChartCanvas_PaintSurface"
-                    Visibility="{Binding ViewModel.HasResult, Converter={StaticResource BoolToVisibilityConverter}}" />
+                <Grid
+                    Width="{Binding ElementName=ChartCanvas, Path=Width}"
+                    Height="{Binding ElementName=ChartCanvas, Path=Height}">
+                    <skia:SKElement
+                        x:Name="ChartCanvas"
+                        Width="900"
+                        Height="320"
+                        PaintSurface="ChartCanvas_PaintSurface"
+                        Visibility="{Binding ViewModel.CanShowChart, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <ui:ProgressRing Width="20" Height="20" IsIndeterminate="True" />
+                        <TextBlock
+                            Margin="8,0,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="Loading..." />
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </ScrollViewer>
     </Grid>
