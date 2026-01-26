@@ -9,5 +9,7 @@
   <Project Path="Contributions.Msix/Contributions.Msix.wapproj" Type="c7167f0d-bc9f-4e6e-afe1-012c56b48db5" Id="ecf243de-69f0-4e97-8650-eefe52337a4f">
     <Deploy />
   </Project>
-  <Project Path="Contributions/Contributions.csproj" Id="5089444e-d12f-43e0-9e49-994ef571adec" />
+  <Project Path="Contributions/Contributions.csproj" Id="5089444e-d12f-43e0-9e49-994ef571adec">
+    <Platform Solution="Debug|x64" Project="x64" />
+  </Project>
 </Solution>

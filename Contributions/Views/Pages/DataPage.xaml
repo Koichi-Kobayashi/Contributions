@@ -204,7 +204,12 @@
                         x:Name="ChartCanvas"
                         Width="900"
                         Height="320"
+                        MouseLeave="ChartCanvas_MouseLeave"
+                        MouseMove="ChartCanvas_MouseMove"
                         PaintSurface="ChartCanvas_PaintSurface"
+                        ToolTipService.InitialShowDelay="0"
+                        ToolTipService.Placement="Mouse"
+                        ToolTipService.ShowDuration="60000"
                         Visibility="{Binding ViewModel.CanShowChart, Converter={StaticResource BoolToVisibilityConverter}}" />
                     <StackPanel
                         HorizontalAlignment="Center"

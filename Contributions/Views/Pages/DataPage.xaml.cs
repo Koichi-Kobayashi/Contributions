@@ -4,6 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using Contributions.Helpers;
 using Contributions.Models;
 using Contributions.Resources;
@@ -28,6 +31,8 @@ namespace Contributions.Views.Pages
         private const float SingleChartHeight = 320f;
         private const float ChartSpacing = 40f;
         private bool _wasLoading;
+        private string? _currentTooltipText;
+        private readonly ToolTip _chartToolTip;
 
         /// <summary>
         /// 描画対象のチャート情報。
@@ -46,6 +51,13 @@ namespace Contributions.Views.Pages
             InitializeComponent();
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
             _wasLoading = ViewModel.IsLoading;
+            _chartToolTip = new ToolTip
+            {
+                Placement = PlacementMode.MousePoint,
+                PlacementTarget = ChartCanvas,
+                StaysOpen = true
+            };
+            ChartCanvas.ToolTip = _chartToolTip;
         }
 
         /// <summary>
@@ -370,6 +382,117 @@ namespace Contributions.Views.Pages
                 var py = (float)Math.Round(y);
                 canvas.DrawRect(px, py, size, size, paint);
             }
+        }
+
+        private void ChartCanvas_MouseLeave(object sender, MouseEventArgs e)
+        {
+            SetTooltipText(null, null);
+        }
+
+        private void ChartCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (ViewModel.ContributionData == null || !ViewModel.HasResult)
+            {
+                SetTooltipText(null, null);
+                return;
+            }
+
+            var point = e.GetPosition(ChartCanvas);
+            var tooltip = GetTooltipTextAt(point);
+            SetTooltipText(tooltip, point);
+        }
+
+        private void SetTooltipText(string? text, Point? point)
+        {
+            _currentTooltipText = text;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                _chartToolTip.IsOpen = false;
+                return;
+            }
+
+            _chartToolTip.Content = text;
+            _chartToolTip.HorizontalOffset = 12;
+            _chartToolTip.VerticalOffset = 16;
+            _chartToolTip.IsOpen = true;
+        }
+
+        private string? GetTooltipTextAt(Point point)
+        {
+            var charts = GetChartItems();
+            if (charts.Count == 0)
+                return null;
+
+            var offsetY = 0f;
+            foreach (var chart in charts)
+            {
+                if (point.Y >= offsetY && point.Y <= offsetY + SingleChartHeight)
+                {
+                    return GetTooltipTextAtChart(point, chart, offsetY);
+                }
+
+                offsetY += SingleChartHeight + ChartSpacing;
+            }
+
+            return null;
+        }
+
+        private static string? GetTooltipTextAtChart(Point point, ChartData chart, float offsetY)
+        {
+            const float padding = 40f;
+            const float cellSize = 11f;
+            const float cellSpacing = 3f;
+            const float leftLabelOffset = 30f;
+            const float chartTopOffset = 80f;
+
+            var weekWidth = cellSize + cellSpacing;
+            var dayHeight = cellSize + cellSpacing;
+            var startX = padding + leftLabelOffset;
+            var startY = offsetY + padding + chartTopOffset;
+
+            var localX = (float)point.X - startX;
+            var localY = (float)point.Y - startY;
+            if (localX < 0 || localY < 0)
+                return null;
+
+            var week = (int)(localX / weekWidth);
+            var day = (int)(localY / dayHeight);
+            if (week < 0 || day < 0 || day > 6)
+                return null;
+
+            var cellX = localX - week * weekWidth;
+            var cellY = localY - day * dayHeight;
+            if (cellX > cellSize || cellY > cellSize)
+                return null;
+
+            var (startDate, rangeEndDate, weeks) = GetChartRange(chart);
+            if (week >= weeks)
+                return null;
+
+            var date = startDate.AddDays(week * 7 + day);
+            if (date < startDate || date > rangeEndDate)
+                return null;
+
+            var contributions = chart.Contributions;
+            var minContributionDate = contributions
+                .Select(c => DateTime.ParseExact(c.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture))
+                .DefaultIfEmpty(DateTime.MinValue)
+                .Min();
+            if (chart.UseFullRange && date < minContributionDate)
+                return null;
+
+            var dateStr = date.ToString("yyyy-MM-dd");
+            var contributionDict = contributions
+                .GroupBy(c => c.Date)
+                .ToDictionary(g => g.Key, g => g.Last());
+
+            if (contributionDict.TryGetValue(dateStr, out var contribution)
+                && !string.IsNullOrWhiteSpace(contribution.TooltipText))
+            {
+                return contribution.TooltipText;
+            }
+
+            return null;
         }
 
         /// <summary>
