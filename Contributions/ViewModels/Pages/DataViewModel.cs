@@ -332,6 +332,7 @@ namespace Contributions.ViewModels.Pages
             }
 
             await _cacheService.ClearUserCacheAsync(username);
+            _gitHubService.ClearProfileHtmlCache();
             await GenerateCoreAsync(isManual: true);
         }
 

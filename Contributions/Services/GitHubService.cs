@@ -13,6 +13,8 @@ namespace Contributions.Services
     public class GitHubService
     {
         private readonly WebViewHtmlService _webViewHtmlService;
+        private readonly Dictionary<string, (DateTimeOffset CachedAt, string Html)> _profileHtmlCache = new();
+        private static readonly TimeSpan ProfileHtmlCacheTtl = TimeSpan.FromMinutes(2);
 
         /// <summary>
         /// 年ごとの取得範囲を表す。
@@ -168,46 +170,57 @@ namespace Contributions.Services
 
             var contributions = new List<Contribution>();
             var seenDates = new HashSet<string>();
-            for (var year = fromDate.Year; year <= toDate.Year; year++)
+
+            if (fromDate.Year == toDate.Year)
             {
-                var rangeFrom = year == fromDate.Year
-                    ? fromDate
-                    : new DateTime(year, 1, 1);
-                var rangeTo = year == toDate.Year
-                    ? toDate
-                    : new DateTime(year, 12, 31);
-                var from = rangeFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                var to = rangeTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                var (days, doc) = await FetchContributionDaysWithDocumentAsync(username, from, to);
-                var tooltipLookup = BuildTooltipLookup(doc);
-
-                if (days == null)
-                    continue;
-
-                foreach (var day in days)
-                {
-                    var date = GetAttributeFromSelfOrDescendant(day, "data-date");
-                    var levelStr = GetAttributeFromSelfOrDescendant(day, "data-level");
-                    var tooltipText = GetTooltipTextForDay(day, tooltipLookup);
-                    if (string.IsNullOrWhiteSpace(date))
-                        continue;
-                    if (!TryParseDate(date, out var parsedDate) || parsedDate < fromDate || parsedDate > toDate)
-                        continue;
-                    if (!seenDates.Add(date))
-                        continue;
-                    var intensity = int.TryParse(levelStr, out var l) ? l : 0;
-
-                    contributions.Add(new Contribution
-                    {
-                        Date = date,
-                        Count = 0,
-                        Intensity = intensity,
-                        TooltipText = tooltipText
-                    });
-                }
+                await AppendDefaultRangeAsync(username, fromDate, toDate, contributions, seenDates);
+                return contributions;
             }
 
+            var endOfFromYear = new DateTime(fromDate.Year, 12, 31);
+            var startOfToYear = new DateTime(toDate.Year, 1, 1);
+
+            await AppendDefaultRangeAsync(username, fromDate, endOfFromYear, contributions, seenDates);
+            await AppendDefaultRangeAsync(username, startOfToYear, toDate, contributions, seenDates);
+
             return contributions;
+        }
+
+        private async Task AppendDefaultRangeAsync(
+            string username,
+            DateTime rangeFrom,
+            DateTime rangeTo,
+            List<Contribution> contributions,
+            HashSet<string> seenDates)
+        {
+            var from = rangeFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var to = rangeTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var (days, doc) = await FetchContributionDaysWithDocumentAsync(username, from, to);
+            if (days == null)
+                return;
+
+            var tooltipLookup = BuildTooltipLookup(doc);
+            foreach (var day in days)
+            {
+                var date = GetAttributeFromSelfOrDescendant(day, "data-date");
+                var levelStr = GetAttributeFromSelfOrDescendant(day, "data-level");
+                var tooltipText = GetTooltipTextForDay(day, tooltipLookup);
+                if (string.IsNullOrWhiteSpace(date))
+                    continue;
+                if (!TryParseDate(date, out var parsedDate) || parsedDate < rangeFrom || parsedDate > rangeTo)
+                    continue;
+                if (!seenDates.Add(date))
+                    continue;
+                var intensity = int.TryParse(levelStr, out var l) ? l : 0;
+
+                contributions.Add(new Contribution
+                {
+                    Date = date,
+                    Count = 0,
+                    Intensity = intensity,
+                    TooltipText = tooltipText
+                });
+            }
         }
 
         /// <summary>
@@ -235,18 +248,26 @@ namespace Contributions.Services
             string? to = null)
         {
             var url = BuildProfileUrl(username, from, to);
+            if (TryGetCachedProfileHtml(url, out var cachedHtml))
+                return LoadHtmlDocument(cachedHtml);
+
             var webViewHtml = await _webViewHtmlService.LoadHtmlAsync(url);
             if (!string.IsNullOrWhiteSpace(webViewHtml))
             {
                 var webDoc = new HtmlDocument();
                 webDoc.LoadHtml(webViewHtml);
                 if (ContainsContributionCalendar(webDoc) || IsFullHtmlDocument(webViewHtml))
+                {
+                    CacheProfileHtml(url, webViewHtml);
                     return webDoc;
+                }
             }
 
             var response = await FetchHtmlWithHttpClientAsync(url);
             var fallback = new HtmlDocument();
             fallback.LoadHtml(response ?? string.Empty);
+            if (!string.IsNullOrWhiteSpace(response))
+                CacheProfileHtml(url, response);
             return fallback;
         }
 
@@ -379,6 +400,46 @@ namespace Contributions.Services
         {
             return doc.DocumentNode.SelectSingleNode(
                 "//table[contains(@class, 'ContributionCalendar-grid') and contains(@class, 'js-calendar-graph-table')]") != null;
+        }
+
+        private bool TryGetCachedProfileHtml(string url, out string html)
+        {
+            if (_profileHtmlCache.TryGetValue(url, out var entry))
+            {
+                if (DateTimeOffset.UtcNow - entry.CachedAt <= ProfileHtmlCacheTtl)
+                {
+                    html = entry.Html;
+                    return true;
+                }
+
+                _profileHtmlCache.Remove(url);
+            }
+
+            html = string.Empty;
+            return false;
+        }
+
+        private void CacheProfileHtml(string url, string html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+                return;
+
+            _profileHtmlCache[url] = (DateTimeOffset.UtcNow, html);
+        }
+
+        private static HtmlDocument LoadHtmlDocument(string html)
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+            return doc;
+        }
+
+        /// <summary>
+        /// プロフィールHTMLのメモリキャッシュをクリアする。
+        /// </summary>
+        public void ClearProfileHtmlCache()
+        {
+            _profileHtmlCache.Clear();
         }
 
         private static bool TryParseDate(string date, out DateTime parsed)
