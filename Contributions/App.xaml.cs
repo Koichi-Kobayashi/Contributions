@@ -50,6 +50,7 @@ namespace Contributions
                 services.AddSingleton<MainWindowViewModel>();
 
                 services.AddSingleton<DataPage>();
+                services.AddSingleton<WebViewHtmlService>();
                 services.AddSingleton<GitHubService>();
                 services.AddSingleton<ContributionCacheService>();
                 services.AddSingleton<DataViewModel>();

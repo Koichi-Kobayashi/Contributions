@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using Contributions.Models;
@@ -11,10 +12,20 @@ namespace Contributions.Services
     /// </summary>
     public class GitHubService
     {
+        private readonly WebViewHtmlService _webViewHtmlService;
+
         /// <summary>
         /// 年ごとの取得範囲を表す。
         /// </summary>
         public record YearRange(string Year, string From, string To);
+
+        /// <summary>
+        /// GitHubServiceを生成する。
+        /// </summary>
+        public GitHubService(WebViewHtmlService webViewHtmlService)
+        {
+            _webViewHtmlService = webViewHtmlService;
+        }
 
         /// <summary>
         /// 入力文字列からGitHubユーザー名を抽出する。
@@ -69,12 +80,7 @@ namespace Contributions.Services
         /// </summary>
         public async Task<List<YearRange>> FetchYearsAsync(string username)
         {
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
-
-            var response = await httpClient.GetStringAsync($"https://github.com/{username}?tab=contributions");
-            var doc = new HtmlDocument();
-            doc.LoadHtml(response);
+            var doc = await FetchProfileDocumentAsync(username);
 
             var yearLinks = doc.DocumentNode.SelectNodes(
                 "//ul[contains(@class, 'filter-list') and contains(@class, 'small')]//a[starts-with(@id, 'year-link-')]")
@@ -108,8 +114,7 @@ namespace Contributions.Services
             string to,
             string year)
         {
-            var days = await FetchContributionDaysAsync(username, from, to)
-                ?? await FetchContributionDaysAsync(username, from, to, useProfilePage: true);
+            var days = await FetchContributionDaysAsync(username, from, to);
             var contributions = new List<Contribution>();
             var fromDate = DateTime.ParseExact(from, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             var toDate = DateTime.ParseExact(to, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
@@ -170,8 +175,7 @@ namespace Contributions.Services
                     : new DateTime(year, 12, 31);
                 var from = rangeFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                 var to = rangeTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                var days = await FetchContributionDaysAsync(username, from, to)
-                    ?? await FetchContributionDaysAsync(username, from, to, useProfilePage: true);
+                var days = await FetchContributionDaysAsync(username, from, to);
 
                 if (days == null)
                     continue;
@@ -203,28 +207,66 @@ namespace Contributions.Services
         /// <summary>
         /// 指定期間のコントリビューション日ノードを取得する。
         /// </summary>
-        private static async Task<HtmlNodeCollection?> FetchContributionDaysAsync(
+        private async Task<HtmlNodeCollection?> FetchContributionDaysAsync(
             string username,
             string from,
-            string to,
-            bool useProfilePage = false)
+            string to)
         {
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
-
-            var fromParam = Uri.EscapeDataString(from);
-            var toParam = Uri.EscapeDataString(to);
-            var url = useProfilePage
-                ? $"https://github.com/{username}?tab=contributions&from={fromParam}&to={toParam}"
-                : $"https://github.com/users/{username}/contributions?from={fromParam}&to={toParam}";
-
-            var response = await httpClient.GetStringAsync(url);
-            var doc = new HtmlDocument();
-            doc.LoadHtml(response);
+            var doc = await FetchProfileDocumentAsync(username, from, to);
 
             var calendarTable = doc.DocumentNode.SelectSingleNode(
                 "//table[contains(@class, 'ContributionCalendar-grid') and contains(@class, 'js-calendar-graph-table')]");
             return calendarTable?.SelectNodes(".//td[contains(@class, 'ContributionCalendar-day')]");
+        }
+
+        /// <summary>
+        /// プロフィールページのHTMLを取得する。
+        /// </summary>
+        private async Task<HtmlDocument> FetchProfileDocumentAsync(
+            string username,
+            string? from = null,
+            string? to = null)
+        {
+            var url = BuildProfileUrl(username, from, to);
+            var webViewHtml = await _webViewHtmlService.LoadHtmlAsync(url);
+            if (!string.IsNullOrWhiteSpace(webViewHtml))
+            {
+                var webDoc = new HtmlDocument();
+                webDoc.LoadHtml(webViewHtml);
+                if (ContainsContributionCalendar(webDoc) || IsFullHtmlDocument(webViewHtml))
+                    return webDoc;
+            }
+
+            var response = await FetchHtmlWithHttpClientAsync(url);
+            var fallback = new HtmlDocument();
+            fallback.LoadHtml(response ?? string.Empty);
+            return fallback;
+        }
+
+        private static string BuildProfileUrl(string username, string? from, string? to)
+        {
+            var url = $"https://github.com/{username}?tab=contributions";
+            if (!string.IsNullOrWhiteSpace(from) && !string.IsNullOrWhiteSpace(to))
+            {
+                var fromParam = Uri.EscapeDataString(from);
+                var toParam = Uri.EscapeDataString(to);
+                url += $"&from={fromParam}&to={toParam}";
+            }
+
+            return url;
+        }
+
+        private static async Task<string?> FetchHtmlWithHttpClientAsync(string url)
+        {
+            using var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All
+            };
+            using var httpClient = new HttpClient(handler);
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "Contributions-App");
+            httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+            return await httpClient.GetStringAsync(url);
         }
 
         /// <summary>
@@ -253,6 +295,19 @@ namespace Contributions.Services
                 return match.Value;
 
             return input.Trim();
+        }
+
+        private static bool IsFullHtmlDocument(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+                return false;
+            return Regex.IsMatch(html, "<html\\b", RegexOptions.IgnoreCase);
+        }
+
+        private static bool ContainsContributionCalendar(HtmlDocument doc)
+        {
+            return doc.DocumentNode.SelectSingleNode(
+                "//table[contains(@class, 'ContributionCalendar-grid') and contains(@class, 'js-calendar-graph-table')]") != null;
         }
 
         private static bool TryParseDate(string date, out DateTime parsed)
