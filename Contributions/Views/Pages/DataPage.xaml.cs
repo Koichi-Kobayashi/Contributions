@@ -498,10 +498,11 @@ namespace Contributions.Views.Pages
             const float cellSpacing = 3f;
             const float leftLabelOffset = 30f;
             const float chartTopOffset = 80f;
+            const float chartOffsetX = cellSize + cellSpacing;
 
             var weekWidth = cellSize + cellSpacing;
             var dayHeight = cellSize + cellSpacing;
-            var startX = padding + leftLabelOffset;
+            var startX = padding + leftLabelOffset + chartOffsetX;
             var startY = offsetY + padding + chartTopOffset;
 
             var localX = (float)point.X - startX;
