@@ -9,7 +9,7 @@ namespace Contributions.Services
     /// </summary>
     public class ContributionCacheService
     {
-        private const int CacheVersion = 2;
+        private const int CacheVersion = 3;
         private const string CacheDirectoryName = "cache";
 
         private static string CacheDirectory =>
@@ -21,19 +21,19 @@ namespace Contributions.Services
         /// <summary>
         /// 既定表示用のコントリビューションをキャッシュから読み込む。
         /// </summary>
-        public async Task<List<Contribution>?> LoadDefaultContributionsAsync(string username)
+        public async Task<DefaultContributionCache?> LoadDefaultContributionsAsync(string username)
         {
             var path = GetDefaultPath(username);
-            return await LoadAsync<List<Contribution>>(path);
+            return await LoadAsync<DefaultContributionCache>(path);
         }
 
         /// <summary>
         /// 既定表示用のコントリビューションをキャッシュに保存する。
         /// </summary>
-        public async Task SaveDefaultContributionsAsync(string username, List<Contribution> contributions)
+        public async Task SaveDefaultContributionsAsync(string username, DefaultContributionCache cache)
         {
             var path = GetDefaultPath(username);
-            await SaveAsync(path, contributions);
+            await SaveAsync(path, cache);
         }
 
         /// <summary>

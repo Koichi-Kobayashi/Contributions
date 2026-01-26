@@ -8,6 +8,7 @@ namespace Contributions.Models
         public List<YearData> Years { get; set; } = new();
         public List<Contribution> Contributions { get; set; } = new();
         public List<Contribution> DefaultContributions { get; set; } = new();
+        public int DefaultTotal { get; set; }
     }
 
     /// <summary>
@@ -39,5 +40,14 @@ namespace Contributions.Models
         public int Count { get; set; }
         public int Intensity { get; set; }
         public string TooltipText { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// 既定表示用キャッシュの内容。
+    /// </summary>
+    public class DefaultContributionCache
+    {
+        public int Total { get; set; }
+        public List<Contribution> Contributions { get; set; } = new();
     }
 }

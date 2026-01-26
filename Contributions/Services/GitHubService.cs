@@ -49,7 +49,7 @@ namespace Contributions.Services
         /// </summary>
         public async Task<ContributionData> FetchDataForAllYearsAsync(string username)
         {
-            var defaultContributions = await FetchDefaultContributionsAsync(username);
+            var defaultCache = await FetchDefaultContributionsAsync(username);
             var years = await FetchYearsAsync(username);
             var yearDataList = new List<YearData>();
             var allContributions = new List<Contribution>();
@@ -73,7 +73,8 @@ namespace Contributions.Services
             {
                 Years = yearDataList,
                 Contributions = allContributions,
-                DefaultContributions = defaultContributions
+                DefaultContributions = defaultCache.Contributions,
+                DefaultTotal = defaultCache.Total
             };
         }
 
@@ -121,6 +122,7 @@ namespace Contributions.Services
             var fromDate = DateTime.ParseExact(from, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             var toDate = DateTime.ParseExact(to, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             var tooltipLookup = BuildTooltipLookup(doc);
+            var total = 0;
 
             if (days != null)
             {
@@ -134,6 +136,7 @@ namespace Contributions.Services
                     if (!TryParseDate(date, out var parsedDate) || parsedDate < fromDate || parsedDate > toDate)
                         continue;
                     var intensity = int.TryParse(levelStr, out var l) ? l : 0;
+                    total += ExtractTooltipCount(tooltipText);
 
                     contributions.Add(new Contribution
                     {
@@ -157,33 +160,34 @@ namespace Contributions.Services
                 ? new DateRange { Start = startDate, End = endDate }
                 : null;
 
-            return (year, contributions.Count, range, contributions);
+            return (year, total, range, contributions);
         }
 
         /// <summary>
         /// 既定表示用（最新年相当）のコントリビューションを取得する。
         /// </summary>
-        public async Task<List<Contribution>> FetchDefaultContributionsAsync(string username)
+        public async Task<DefaultContributionCache> FetchDefaultContributionsAsync(string username)
         {
             var toDate = DateTime.Today;
             var fromDate = DateTime.Today.AddDays(-365);
 
             var contributions = new List<Contribution>();
+            var total = 0;
             var seenDates = new HashSet<string>();
 
             if (fromDate.Year == toDate.Year)
             {
-                await AppendDefaultRangeAsync(username, fromDate, toDate, contributions, seenDates);
-                return contributions;
+                await AppendDefaultRangeAsync(username, fromDate, toDate, contributions, seenDates, c => total += c);
+                return new DefaultContributionCache { Total = total, Contributions = contributions };
             }
 
             var endOfFromYear = new DateTime(fromDate.Year, 12, 31);
             var startOfToYear = new DateTime(toDate.Year, 1, 1);
 
-            await AppendDefaultRangeAsync(username, fromDate, endOfFromYear, contributions, seenDates);
-            await AppendDefaultRangeAsync(username, startOfToYear, toDate, contributions, seenDates);
+            await AppendDefaultRangeAsync(username, fromDate, endOfFromYear, contributions, seenDates, c => total += c);
+            await AppendDefaultRangeAsync(username, startOfToYear, toDate, contributions, seenDates, c => total += c);
 
-            return contributions;
+            return new DefaultContributionCache { Total = total, Contributions = contributions };
         }
 
         private async Task AppendDefaultRangeAsync(
@@ -191,7 +195,8 @@ namespace Contributions.Services
             DateTime rangeFrom,
             DateTime rangeTo,
             List<Contribution> contributions,
-            HashSet<string> seenDates)
+            HashSet<string> seenDates,
+            Action<int> addTotal)
         {
             var from = rangeFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var to = rangeTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -212,6 +217,7 @@ namespace Contributions.Services
                 if (!seenDates.Add(date))
                     continue;
                 var intensity = int.TryParse(levelStr, out var l) ? l : 0;
+                addTotal(ExtractTooltipCount(tooltipText));
 
                 contributions.Add(new Contribution
                 {
@@ -387,6 +393,18 @@ namespace Contributions.Services
                 return string.Empty;
 
             return Regex.Replace(text, @"\s+", " ").Trim();
+        }
+
+        private static int ExtractTooltipCount(string? tooltipText)
+        {
+            if (string.IsNullOrWhiteSpace(tooltipText))
+                return 0;
+
+            var match = Regex.Match(tooltipText, @"^\s*(\d+)");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out var count))
+                return count;
+
+            return 0;
         }
 
         private static bool IsFullHtmlDocument(string html)

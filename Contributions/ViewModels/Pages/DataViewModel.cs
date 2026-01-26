@@ -22,6 +22,7 @@ namespace Contributions.ViewModels.Pages
         private List<GitHubService.YearRange> _availableYearRanges = [];
         private readonly Dictionary<string, YearData> _yearDataByYear = new();
         private List<Contribution> _defaultContributions = [];
+        private int _defaultContributionTotal;
         private YearOptionKind? _preferredYearKind;
         private string? _preferredYearValue;
         public static string DefaultYearOption => Translations.GetString("YearOption_Default");
@@ -469,15 +470,19 @@ namespace Contributions.ViewModels.Pages
             if (!forceRefresh)
             {
                 var cached = await _cacheService.LoadDefaultContributionsAsync(username);
-                if (cached != null && cached.Count > 0 && !IsContributionDataStale(cached, DateTime.Today))
+                if (cached != null
+                    && cached.Contributions.Count > 0
+                    && !IsContributionDataStale(cached.Contributions, DateTime.Today))
                 {
-                    _defaultContributions = cached;
+                    _defaultContributions = cached.Contributions;
+                    _defaultContributionTotal = cached.Total;
                     return;
                 }
             }
 
             var fetched = await _gitHubService.FetchDefaultContributionsAsync(username);
-            _defaultContributions = fetched;
+            _defaultContributions = fetched.Contributions;
+            _defaultContributionTotal = fetched.Total;
             await _cacheService.SaveDefaultContributionsAsync(username, fetched);
         }
 
@@ -577,7 +582,8 @@ namespace Contributions.ViewModels.Pages
             {
                 Years = yearData,
                 Contributions = contributions,
-                DefaultContributions = _defaultContributions
+                DefaultContributions = _defaultContributions,
+                DefaultTotal = _defaultContributionTotal
             };
         }
 

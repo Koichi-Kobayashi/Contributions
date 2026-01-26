@@ -37,7 +37,7 @@ namespace Contributions.Views.Pages
         /// <summary>
         /// 描画対象のチャート情報。
         /// </summary>
-        private record ChartData(string Title, List<Contribution> Contributions, bool UseFullRange);
+        private record ChartData(string Title, List<Contribution> Contributions, bool UseFullRange, string? TotalLabel);
 
         /// <summary>
         /// DataPageを生成する。
@@ -190,24 +190,56 @@ namespace Contributions.Views.Pages
             if (string.IsNullOrWhiteSpace(selected) || selected == DataViewModel.DefaultYearOption)
             {
                 if (data.DefaultContributions.Count > 0)
-                    return [new ChartData("GitHub Contributions", data.DefaultContributions, false)];
+                    return
+                    [
+                        new ChartData(
+                            "GitHub Contributions",
+                            data.DefaultContributions,
+                            false,
+                            BuildTotalLabel(data.DefaultTotal, "in the last year"))
+                    ];
 
-                return [new ChartData("GitHub Contributions", data.Contributions, false)];
+                return
+                [
+                    new ChartData(
+                        "GitHub Contributions",
+                        data.Contributions,
+                        false,
+                        BuildTotalLabel(data.DefaultTotal, "in the last year"))
+                ];
             }
 
             if (selected == DataViewModel.AllYearsOption)
             {
                 return ViewModel.GetOrderedYears()
-                    .Select(y => new ChartData($"GitHub Contributions {y.Year}", y.Contributions, true))
+                    .Select(y => new ChartData(
+                        $"GitHub Contributions {y.Year}",
+                        y.Contributions,
+                        true,
+                        BuildTotalLabel(y.Total, $"in {y.Year}")))
                     .Where(c => c.Contributions.Count > 0)
                     .ToList();
             }
 
             var target = data.Years.FirstOrDefault(y => y.Year == selected);
             if (target != null)
-                return [new ChartData($"GitHub Contributions {target.Year}", target.Contributions, true)];
+                return
+                [
+                    new ChartData(
+                        $"GitHub Contributions {target.Year}",
+                        target.Contributions,
+                        true,
+                        BuildTotalLabel(target.Total, $"in {target.Year}"))
+                ];
 
-            return [new ChartData("GitHub Contributions", data.Contributions, false)];
+            return
+            [
+                new ChartData(
+                    "GitHub Contributions",
+                    data.Contributions,
+                    false,
+                    BuildTotalLabel(data.DefaultTotal, "in the last year"))
+            ];
         }
 
         /// <summary>
@@ -375,6 +407,27 @@ namespace Contributions.Views.Pages
                 SKTextAlign.Left,
                 legendFont,
                 legendLabelPaint);
+
+            // 合計ラベル（凡例と同じ縦位置で右寄せ）
+            if (!string.IsNullOrWhiteSpace(chart.TotalLabel))
+            {
+                using var totalPaint = new SKPaint
+                {
+                    Color = SKColor.Parse(theme.Text),
+                    IsAntialias = true
+                };
+                using var totalFont = new SKFont(SKTypeface.Default, 18);
+                var totalBounds = new SKRect();
+                totalFont.MeasureText(chart.TotalLabel, out totalBounds);
+                var totalX = info.Width - padding - totalBounds.Width - 30;
+                canvas.DrawText(
+                    chart.TotalLabel,
+                    totalX,
+                    legendTextBaseline,
+                    SKTextAlign.Left,
+                    totalFont,
+                    totalPaint);
+            }
 
             static void DrawCell(SKCanvas canvas, float x, float y, float size, SKPaint paint)
             {
@@ -698,6 +751,15 @@ namespace Contributions.Views.Pages
             if (intensity < 0) return 0;
             if (intensity > 4) return 4;
             return intensity;
+        }
+
+        private static string? BuildTotalLabel(int total, string suffix)
+        {
+            if (total < 0)
+                return null;
+
+            var formatted = total.ToString("N0", CultureInfo.InvariantCulture);
+            return $"{formatted} contributions {suffix}";
         }
 
         /// <summary>
