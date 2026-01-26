@@ -844,7 +844,7 @@ namespace Contributions.ViewModels.Pages
             if (maxDate == null)
                 return true;
 
-            if (maxDate.Value.Date > today.Date)
+            if (maxDate.Value.Date != today.Date)
                 return true;
 
             var rangeStart = today.Date.AddDays(-365);
