@@ -291,7 +291,8 @@ namespace Contributions.Views.Pages
             var (startDate, rangeEndDate, weeks) = GetChartRange(chart);
             var chartHeight = 7 * dayHeight;
 
-            var startX = padding + 30;
+            var chartOffsetX = weekWidth;
+            var startX = padding + 30 + chartOffsetX;
             var startY = offsetY + padding + 80;
 
             // 曜日ラベル（Mon/Wed/Fri）
@@ -419,7 +420,7 @@ namespace Contributions.Views.Pages
                 using var totalFont = new SKFont(SKTypeface.Default, 18);
                 var totalBounds = new SKRect();
                 totalFont.MeasureText(chart.TotalLabel, out totalBounds);
-                var totalX = info.Width - padding - totalBounds.Width - 30;
+                var totalX = info.Width - padding - totalBounds.Width - 40;
                 canvas.DrawText(
                     chart.TotalLabel,
                     totalX,
