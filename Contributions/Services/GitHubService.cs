@@ -114,10 +114,11 @@ namespace Contributions.Services
             string to,
             string year)
         {
-            var days = await FetchContributionDaysAsync(username, from, to);
+            var (days, doc) = await FetchContributionDaysWithDocumentAsync(username, from, to);
             var contributions = new List<Contribution>();
             var fromDate = DateTime.ParseExact(from, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             var toDate = DateTime.ParseExact(to, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var tooltipLookup = BuildTooltipLookup(doc);
 
             if (days != null)
             {
@@ -125,6 +126,7 @@ namespace Contributions.Services
                 {
                     var date = GetAttributeFromSelfOrDescendant(day, "data-date");
                     var levelStr = GetAttributeFromSelfOrDescendant(day, "data-level");
+                    var tooltipText = GetTooltipTextForDay(day, tooltipLookup);
                     if (string.IsNullOrWhiteSpace(date))
                         continue;
                     if (!TryParseDate(date, out var parsedDate) || parsedDate < fromDate || parsedDate > toDate)
@@ -135,7 +137,8 @@ namespace Contributions.Services
                     {
                         Date = date,
                         Count = 0,
-                        Intensity = intensity
+                        Intensity = intensity,
+                        TooltipText = tooltipText
                     });
                 }
             }
@@ -175,7 +178,8 @@ namespace Contributions.Services
                     : new DateTime(year, 12, 31);
                 var from = rangeFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                 var to = rangeTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                var days = await FetchContributionDaysAsync(username, from, to);
+                var (days, doc) = await FetchContributionDaysWithDocumentAsync(username, from, to);
+                var tooltipLookup = BuildTooltipLookup(doc);
 
                 if (days == null)
                     continue;
@@ -184,6 +188,7 @@ namespace Contributions.Services
                 {
                     var date = GetAttributeFromSelfOrDescendant(day, "data-date");
                     var levelStr = GetAttributeFromSelfOrDescendant(day, "data-level");
+                    var tooltipText = GetTooltipTextForDay(day, tooltipLookup);
                     if (string.IsNullOrWhiteSpace(date))
                         continue;
                     if (!TryParseDate(date, out var parsedDate) || parsedDate < fromDate || parsedDate > toDate)
@@ -196,7 +201,8 @@ namespace Contributions.Services
                     {
                         Date = date,
                         Count = 0,
-                        Intensity = intensity
+                        Intensity = intensity,
+                        TooltipText = tooltipText
                     });
                 }
             }
@@ -207,7 +213,7 @@ namespace Contributions.Services
         /// <summary>
         /// 指定期間のコントリビューション日ノードを取得する。
         /// </summary>
-        private async Task<HtmlNodeCollection?> FetchContributionDaysAsync(
+        private async Task<(HtmlNodeCollection? Days, HtmlDocument Document)> FetchContributionDaysWithDocumentAsync(
             string username,
             string from,
             string to)
@@ -216,7 +222,8 @@ namespace Contributions.Services
 
             var calendarTable = doc.DocumentNode.SelectSingleNode(
                 "//table[contains(@class, 'ContributionCalendar-grid') and contains(@class, 'js-calendar-graph-table')]");
-            return calendarTable?.SelectNodes(".//td[contains(@class, 'ContributionCalendar-day')]");
+            var days = calendarTable?.SelectNodes(".//td[contains(@class, 'ContributionCalendar-day')]");
+            return (days, doc);
         }
 
         /// <summary>
@@ -295,6 +302,70 @@ namespace Contributions.Services
                 return match.Value;
 
             return input.Trim();
+        }
+
+        private static Dictionary<string, string> BuildTooltipLookup(HtmlDocument doc)
+        {
+            var lookup = new Dictionary<string, string>();
+            var tooltips = doc.DocumentNode.SelectNodes("//tool-tip");
+            if (tooltips == null)
+                return lookup;
+
+            foreach (var tip in tooltips)
+            {
+                var text = NormalizeTooltipText(HtmlEntity.DeEntitize(tip.InnerText));
+                if (string.IsNullOrWhiteSpace(text))
+                    continue;
+
+                var forId = tip.GetAttributeValue("for", "");
+                if (!string.IsNullOrWhiteSpace(forId))
+                    lookup[forId] = text;
+
+                var id = tip.GetAttributeValue("id", "");
+                if (!string.IsNullOrWhiteSpace(id))
+                    lookup[id] = text;
+
+                var dateMatch = Regex.Match(forId, @"\d{4}-\d{2}-\d{2}");
+                if (dateMatch.Success)
+                    lookup[dateMatch.Value] = text;
+            }
+
+            return lookup;
+        }
+
+        private static string GetTooltipTextForDay(HtmlNode day, IReadOnlyDictionary<string, string> lookup)
+        {
+            var ariaLabel = GetAttributeFromSelfOrDescendant(day, "aria-label");
+            if (!string.IsNullOrWhiteSpace(ariaLabel))
+                return NormalizeTooltipText(ariaLabel);
+
+            var labelledBy = GetAttributeFromSelfOrDescendant(day, "aria-labelledby");
+            if (!string.IsNullOrWhiteSpace(labelledBy))
+            {
+                foreach (var id in labelledBy.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (lookup.TryGetValue(id, out var text))
+                        return text;
+                }
+            }
+
+            var nodeId = GetAttributeFromSelfOrDescendant(day, "id");
+            if (!string.IsNullOrWhiteSpace(nodeId) && lookup.TryGetValue(nodeId, out var byId))
+                return byId;
+
+            var date = GetAttributeFromSelfOrDescendant(day, "data-date");
+            if (!string.IsNullOrWhiteSpace(date) && lookup.TryGetValue(date, out var byDate))
+                return byDate;
+
+            return string.Empty;
+        }
+
+        private static string NormalizeTooltipText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return string.Empty;
+
+            return Regex.Replace(text, @"\s+", " ").Trim();
         }
 
         private static bool IsFullHtmlDocument(string html)

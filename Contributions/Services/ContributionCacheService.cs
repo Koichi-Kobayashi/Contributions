@@ -9,7 +9,7 @@ namespace Contributions.Services
     /// </summary>
     public class ContributionCacheService
     {
-        private const int CacheVersion = 1;
+        private const int CacheVersion = 2;
         private const string CacheDirectoryName = "cache";
 
         private static string CacheDirectory =>

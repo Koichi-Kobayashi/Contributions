@@ -38,5 +38,6 @@ namespace Contributions.Models
         public string Date { get; set; } = string.Empty;
         public int Count { get; set; }
         public int Intensity { get; set; }
+        public string TooltipText { get; set; } = string.Empty;
     }
 }
