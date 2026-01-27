@@ -309,7 +309,7 @@ namespace Contributions.Views.Pages
             void DrawDayLabel(SKCanvas c, string text, int dayIndex)
             {
                 var y = startY + dayIndex * dayHeight + cellSize / 2;
-                c.DrawText(text, startX - 30, y, SKTextAlign.Left, dayLabelFont, dayLabelPaint);
+                c.DrawText(text, startX - 30, y + 4, SKTextAlign.Left, dayLabelFont, dayLabelPaint);
             }
 
             using var cellPaint = new SKPaint
