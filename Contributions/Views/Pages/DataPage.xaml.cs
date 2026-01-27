@@ -301,7 +301,7 @@ namespace Contributions.Views.Pages
                 Color = SKColor.Parse(theme.SubText),
                 IsAntialias = true
             };
-            using var dayLabelFont = new SKFont(SKTypeface.Default, 10);
+            using var dayLabelFont = new SKFont(SKTypeface.Default, 12);
             DrawDayLabel(canvas, "Mon", 1);
             DrawDayLabel(canvas, "Wed", 3);
             DrawDayLabel(canvas, "Fri", 5);
