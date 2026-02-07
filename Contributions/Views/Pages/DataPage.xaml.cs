@@ -714,20 +714,10 @@ namespace Contributions.Views.Pages
                 shareText += "\n";
             }
 
-            var shareHashtagValues = new[] { ViewModel.ShareHashtag1, ViewModel.ShareHashtag2, ViewModel.ShareHashtag3 };
-            var (urls, hashtags) = SplitShareValues(shareHashtagValues);
-
-            if (urls.Count > 0)
-            {
-                if (!string.IsNullOrEmpty(shareText))
-                    shareText += "\n";
-                shareText += string.Join("\n", urls);
-            }
-
-            if (!string.IsNullOrWhiteSpace(shareText) && !string.IsNullOrWhiteSpace(shareUrl))
-            {
-                shareText += "\n";
-            }
+            var hashtags = BuildHashtags(
+                ViewModel.ShareHashtag1,
+                ViewModel.ShareHashtag2,
+                ViewModel.ShareHashtag3);
 
             XShare.OpenTweetComposer(
                 text: shareText,
@@ -735,41 +725,14 @@ namespace Contributions.Views.Pages
                 hashtags: hashtags);
         }
 
-        /// <summary>
-        /// Share hashtagの値をURLとハッシュタグに分離する。
-        /// http:// または https:// で始まる値はURLとして扱い、#を付けずにテキストに含める（投稿時にリンクになる）。
-        /// </summary>
-        private static (List<string> Urls, string? Hashtags) SplitShareValues(string?[] values)
+        private static string? BuildHashtags(params string?[] values)
         {
-            var urls = new List<string>();
-            var tags = new List<string>();
+            var tags = values
+                .Select(NormalizeHashtag)
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .ToList();
 
-            foreach (var value in values)
-            {
-                var trimmed = value?.Trim();
-                if (string.IsNullOrWhiteSpace(trimmed))
-                    continue;
-
-                if (IsUrl(trimmed))
-                {
-                    urls.Add(trimmed);
-                }
-                else
-                {
-                    var tag = NormalizeHashtag(trimmed);
-                    if (!string.IsNullOrWhiteSpace(tag))
-                        tags.Add(tag);
-                }
-            }
-
-            var hashtags = tags.Count == 0 ? null : string.Join(",", tags);
-            return (urls, hashtags);
-        }
-
-        private static bool IsUrl(string value)
-        {
-            return value.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-                || value.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+            return tags.Count == 0 ? null : string.Join(",", tags);
         }
 
         private static string? NormalizeHashtag(string? value)
