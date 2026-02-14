@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>wpfui-icon.ico</ApplicationIcon>
+    <ApplicationIcon>Contoributions-icon.ico</ApplicationIcon>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -19,7 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="wpfui-icon.ico" />
+    <Content Include="Contoributions-icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,13 +34,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Assets\wpfui-icon-256.png" />
-    <None Remove="Assets\wpfui-icon-1024.png" />
+    <None Remove="Assets\Contoributions-icon.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\wpfui-icon-256.png" />
-    <Resource Include="Assets\wpfui-icon-1024.png" />
     <Resource Include="Assets\Contoributions-icon.png" />
   </ItemGroup>
 
